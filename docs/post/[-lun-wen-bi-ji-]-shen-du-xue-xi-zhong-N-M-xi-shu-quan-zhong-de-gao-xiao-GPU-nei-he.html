@@ -9,7 +9,7 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="![论文封面](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/论文封面.png)
+<meta name="description" content="![论文封面](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/论文封面.png)
 
 # [论文笔记]深度学习中N:M稀疏权重的高效GPU内核
 
@@ -29,7 +29,7 @@
 
 **权重剪枝的目的是找到并去除对模型精度影响不大的冗余权重. 从而直接减少了模型的内存占用和计算规模.**
 
-![如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/稀疏剪枝.png)
+![如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/稀疏剪枝.png)
 
 如图所示, 图中占比重要的权重被保留, 冗余的权重被去除. 在保留模型精度的同时降低了计算规模.
 
@@ -43,7 +43,7 @@ N:M稀疏性可以为深度学习提供高模型精度和计算效率.
 
 **N:M稀疏性本质上对非零权重施加了平衡分布,具体为每连续的M个权值中,只有N个权值不为零.**
 
-![三种稀疏模式](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/三种NM稀疏模式.png)
+![三种稀疏模式](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/三种NM稀疏模式.png)
 
 图上展示了三种稀疏模式, 元素型, 矢量型和块型. 图中蓝色方块代表非零值, 白色方块代表0. 上面一列是无约束分布的数据, 下面一列是N:M平衡分布的数据. 图中稀疏比为1:4. 左下角的图表示垂直的每四个权值中有一个非零权值.
 
@@ -58,7 +58,7 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 
 论文中给出专用于nmSPARSE中N:M稀疏模式的压缩表示格式.
 
-![EW-/VW-/BW-N:M sparsity的数据压缩表示](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/NM稀疏模式的压缩表示格式.png)
+![EW-/VW-/BW-N:M sparsity的数据压缩表示](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/NM稀疏模式的压缩表示格式.png)
 
 EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
@@ -88,7 +88,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **在共享内存中当多个地址请求落在相同的内存库的不同地址中时， 就会发生存储体冲突(bank conflict)， 这会导致请求被重复执行, 从而降低带宽.**
 
-![多个线程同时访问同一个bank. 图片来自谭升的博客](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/多个线程同时访问同一个bank(bank_conflict).png)
+![多个线程同时访问同一个bank. 图片来自谭升的博客](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/多个线程同时访问同一个bank(bank_conflict).png)
 
 多个线程同时访问同一个bank产生bank conflict. 图片来自谭升的博客.
 
@@ -96,13 +96,13 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **相反,如果warp中的32个线程的内存访问映射到32个不同的存储体,那么可以同时提供服务,不会产生bank冲突,这种模式也被称为无冲突访问模式(conflict-free access)**
 
-![每个线程都访问不同的bank. 图片来自谭升的博客](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/无冲突访问模式.png)
+![每个线程都访问不同的bank. 图片来自谭升的博客](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/无冲突访问模式.png)
 
 最理想的访问模式, 每个线程都访问不同的bank. 图片来自谭升的博客.
 
 当然不规则访问的同时访问不同的bank也属于无冲突访问模式(conflict-free access)
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/不规则访问但也不冲突.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/不规则访问但也不冲突.png)
 
 不规则访问的无冲突访问模式(conflict-free access). 图片来自谭升的博客.
 
@@ -112,11 +112,11 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **当一个warp中的多个线程访问同一个bank,但是使用的是完全相同的地址时,可以通过硬件支持的广播机制来提供服务,不会出现存储体冲突(bank conflict)**.这种访问模式称为无冲突广播访问模式(conflict-free broadcast access).
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同的bank.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同的bank.png)
 
 > 上图两条红色的线访问了同一个bank1的不同地址, 出现了bank冲突.
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同bank的相同地址.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同bank的相同地址.png)
 
 > 如上图, 虽然有两个线程都访问了同一个bank1,但是访问的是完全相同的地址.这种访问模式就称为无冲突广播访问模式(conflict-free broadcast access).
 
@@ -130,7 +130,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 4. 稠密向量A则从全局内存加载到共享内存中,并且根据每个子列需要的向量划分到不同的内存块中.
 5. 不同线程只需要访问不同的内存块,消除了bank冲突.
 
-![各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMV.png)
+![各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMV.png)
 
 ***
 
@@ -138,7 +138,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 nmSPARSE中的SpMM kernel将稠密矩阵A储存在共享内存中,将线程映射到稀疏矩阵B中的列来实现对A中所需元素的访问
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMM.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMM.png)
 
 1. 通过将稠密A矩阵按行储存在共享内存中,如图A矩阵一行有32个元素,一行的元素刚好可以对应储存同在一个bank.
 2. 每个线程负责稀疏B矩阵的每一列.
@@ -151,7 +151,7 @@ nmSPARSE中的SpMM kernel将稠密矩阵A储存在共享内存中,将线程映�
 
 通过与当前最先进的稠密和稀疏库以及DNN编译器进行比较，在操作基准和端到端模型上评估nmSPARSE内核。">
 <meta property="og:title" content="[论文笔记]深度学习中N:M稀疏权重的高效GPU内核">
-<meta property="og:description" content="![论文封面](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/论文封面.png)
+<meta property="og:description" content="![论文封面](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/论文封面.png)
 
 # [论文笔记]深度学习中N:M稀疏权重的高效GPU内核
 
@@ -171,7 +171,7 @@ nmSPARSE中的SpMM kernel将稠密矩阵A储存在共享内存中,将线程映�
 
 **权重剪枝的目的是找到并去除对模型精度影响不大的冗余权重. 从而直接减少了模型的内存占用和计算规模.**
 
-![如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/稀疏剪枝.png)
+![如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/稀疏剪枝.png)
 
 如图所示, 图中占比重要的权重被保留, 冗余的权重被去除. 在保留模型精度的同时降低了计算规模.
 
@@ -185,7 +185,7 @@ N:M稀疏性可以为深度学习提供高模型精度和计算效率.
 
 **N:M稀疏性本质上对非零权重施加了平衡分布,具体为每连续的M个权值中,只有N个权值不为零.**
 
-![三种稀疏模式](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/三种NM稀疏模式.png)
+![三种稀疏模式](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/三种NM稀疏模式.png)
 
 图上展示了三种稀疏模式, 元素型, 矢量型和块型. 图中蓝色方块代表非零值, 白色方块代表0. 上面一列是无约束分布的数据, 下面一列是N:M平衡分布的数据. 图中稀疏比为1:4. 左下角的图表示垂直的每四个权值中有一个非零权值.
 
@@ -200,7 +200,7 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 
 论文中给出专用于nmSPARSE中N:M稀疏模式的压缩表示格式.
 
-![EW-/VW-/BW-N:M sparsity的数据压缩表示](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/NM稀疏模式的压缩表示格式.png)
+![EW-/VW-/BW-N:M sparsity的数据压缩表示](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/NM稀疏模式的压缩表示格式.png)
 
 EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
@@ -230,7 +230,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **在共享内存中当多个地址请求落在相同的内存库的不同地址中时， 就会发生存储体冲突(bank conflict)， 这会导致请求被重复执行, 从而降低带宽.**
 
-![多个线程同时访问同一个bank. 图片来自谭升的博客](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/多个线程同时访问同一个bank(bank_conflict).png)
+![多个线程同时访问同一个bank. 图片来自谭升的博客](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/多个线程同时访问同一个bank(bank_conflict).png)
 
 多个线程同时访问同一个bank产生bank conflict. 图片来自谭升的博客.
 
@@ -238,13 +238,13 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **相反,如果warp中的32个线程的内存访问映射到32个不同的存储体,那么可以同时提供服务,不会产生bank冲突,这种模式也被称为无冲突访问模式(conflict-free access)**
 
-![每个线程都访问不同的bank. 图片来自谭升的博客](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/无冲突访问模式.png)
+![每个线程都访问不同的bank. 图片来自谭升的博客](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/无冲突访问模式.png)
 
 最理想的访问模式, 每个线程都访问不同的bank. 图片来自谭升的博客.
 
 当然不规则访问的同时访问不同的bank也属于无冲突访问模式(conflict-free access)
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/不规则访问但也不冲突.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/不规则访问但也不冲突.png)
 
 不规则访问的无冲突访问模式(conflict-free access). 图片来自谭升的博客.
 
@@ -254,11 +254,11 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 **当一个warp中的多个线程访问同一个bank,但是使用的是完全相同的地址时,可以通过硬件支持的广播机制来提供服务,不会出现存储体冲突(bank conflict)**.这种访问模式称为无冲突广播访问模式(conflict-free broadcast access).
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同的bank.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同的bank.png)
 
 > 上图两条红色的线访问了同一个bank1的不同地址, 出现了bank冲突.
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同bank的相同地址.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/两个线程访问相同bank的相同地址.png)
 
 > 如上图, 虽然有两个线程都访问了同一个bank1,但是访问的是完全相同的地址.这种访问模式就称为无冲突广播访问模式(conflict-free broadcast access).
 
@@ -272,7 +272,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 4. 稠密向量A则从全局内存加载到共享内存中,并且根据每个子列需要的向量划分到不同的内存块中.
 5. 不同线程只需要访问不同的内存块,消除了bank冲突.
 
-![各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMV.png)
+![各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMV.png)
 
 ***
 
@@ -280,7 +280,7 @@ EW-/VW-/BW-N:M sparsity的数据压缩表示.
 
 nmSPARSE中的SpMM kernel将稠密矩阵A储存在共享内存中,将线程映射到稀疏矩阵B中的列来实现对A中所需元素的访问
 
-![](img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMM.png)
+![](/img/[论文笔记]深度学习中NM稀疏权重的高效GPU内核/nmSPARSE_SpMM.png)
 
 1. 通过将稠密A矩阵按行储存在共享内存中,如图A矩阵一行有32个元素,一行的元素刚好可以对应储存同在一个bank.
 2. 每个线程负责稀疏B矩阵的每一列.
@@ -350,7 +350,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E8%AE%BA%E6%96%87%E5%B0%81%E9%9D%A2.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E8%AE%BA%E6%96%87%E5%B0%81%E9%9D%A2.png" alt="论文封面" style="max-width: 100%;"></a></p>
+<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E8%AE%BA%E6%96%87%E5%B0%81%E9%9D%A2.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E8%AE%BA%E6%96%87%E5%B0%81%E9%9D%A2.png" alt="论文封面" style="max-width: 100%;"></a></p>
 <h1>[论文笔记]深度学习中N:M稀疏权重的高效GPU内核</h1>
 <p><strong>EFFICIENT GPU KERNELS FOR N:M-SPARSE WEIGHTS IN DEEP LEARNING</strong></p>
 <p>论文于2023年发表在Sixth Conference on Machine Learning and Systems · Miami (MLSys 23).</p>
@@ -360,7 +360,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <h2>Weight Pruning</h2>
 <p>为了减少深度神经网络(DNN)的模型大小并加速模型推理, 权重剪枝(Weight Pruning)算法在学术界和工业界得到广泛的研究.</p>
 <p><strong>权重剪枝的目的是找到并去除对模型精度影响不大的冗余权重. 从而直接减少了模型的内存占用和计算规模.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E7%A8%80%E7%96%8F%E5%89%AA%E6%9E%9D.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E7%A8%80%E7%96%8F%E5%89%AA%E6%9E%9D.png" alt="如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E7%A8%80%E7%96%8F%E5%89%AA%E6%9E%9D.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E7%A8%80%E7%96%8F%E5%89%AA%E6%9E%9D.png" alt="如图所示,图中占比重要的权重被保留,冗余的权重被去除.在保留模型精度的同时降低了计算规模" style="max-width: 100%;"></a></p>
 <p>如图所示, 图中占比重要的权重被保留, 冗余的权重被去除. 在保留模型精度的同时降低了计算规模.</p>
 <blockquote>
 <p>通过调整权重剪枝(Weight Pruning)算法可以将权值修剪为N:M稀疏模式, 随着权值被修剪为稀疏后, DNN推理中最频繁和耗时的稠密矩阵-向量乘法(GEMV)和稠密矩阵-矩阵乘法(GEMM)变为了具有N:M稀疏性的稀疏矩阵-向量乘法(SpMV)和稀疏矩阵-矩阵乘法(SpMM). 那么什么是N:M稀疏性呢?</p>
@@ -369,7 +369,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <h2>N:M sparsity</h2>
 <p>N:M稀疏性可以为深度学习提供高模型精度和计算效率.</p>
 <p><strong>N:M稀疏性本质上对非零权重施加了平衡分布,具体为每连续的M个权值中,只有N个权值不为零.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%89%E7%A7%8DNM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%89%E7%A7%8DNM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F.png" alt="三种稀疏模式" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%89%E7%A7%8DNM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%89%E7%A7%8DNM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F.png" alt="三种稀疏模式" style="max-width: 100%;"></a></p>
 <p>图上展示了三种稀疏模式, 元素型, 矢量型和块型. 图中蓝色方块代表非零值, 白色方块代表0. 上面一列是无约束分布的数据, 下面一列是N:M平衡分布的数据. 图中稀疏比为1:4. 左下角的图表示垂直的每四个权值中有一个非零权值.</p>
 <blockquote>
 <p>注意,N:M分布是沿着矩阵乘法中的降维k分布的<br>
@@ -379,7 +379,7 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 <h2>N:M sparsity压缩表示</h2>
 <p>稀疏矩阵有各种压缩表示格式,如CSC,CSR,COO等.</p>
 <p>论文中给出专用于nmSPARSE中N:M稀疏模式的压缩表示格式.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/NM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8E%8B%E7%BC%A9%E8%A1%A8%E7%A4%BA%E6%A0%BC%E5%BC%8F.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/NM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8E%8B%E7%BC%A9%E8%A1%A8%E7%A4%BA%E6%A0%BC%E5%BC%8F.png" alt="EW-/VW-/BW-N:M sparsity的数据压缩表示" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/NM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8E%8B%E7%BC%A9%E8%A1%A8%E7%A4%BA%E6%A0%BC%E5%BC%8F.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/NM%E7%A8%80%E7%96%8F%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8E%8B%E7%BC%A9%E8%A1%A8%E7%A4%BA%E6%A0%BC%E5%BC%8F.png" alt="EW-/VW-/BW-N:M sparsity的数据压缩表示" style="max-width: 100%;"></a></p>
 <p>EW-/VW-/BW-N:M sparsity的数据压缩表示.</p>
 <p>如图,将非零数据按竖直方向压缩后,创建一个大小相同的位置数组记录对应非零数据在原矩阵中M窗口中的位置索引. 并记录稀疏模式和稀疏比.</p>
 <hr>
@@ -400,25 +400,25 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 共享内存中被分为32个同样大小的存储体(bank)，对应线程束中32个线程.</p>
 </blockquote>
 <p><strong>在共享内存中当多个地址请求落在相同的内存库的不同地址中时， 就会发生存储体冲突(bank conflict)， 这会导致请求被重复执行, 从而降低带宽.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E5%A4%9A%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%97%B6%E8%AE%BF%E9%97%AE%E5%90%8C%E4%B8%80%E4%B8%AAbank(bank_conflict).png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E5%A4%9A%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%97%B6%E8%AE%BF%E9%97%AE%E5%90%8C%E4%B8%80%E4%B8%AAbank(bank_conflict).png" alt="多个线程同时访问同一个bank. 图片来自谭升的博客" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E5%A4%9A%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%97%B6%E8%AE%BF%E9%97%AE%E5%90%8C%E4%B8%80%E4%B8%AAbank(bank_conflict).png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E5%A4%9A%E4%B8%AA%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%97%B6%E8%AE%BF%E9%97%AE%E5%90%8C%E4%B8%80%E4%B8%AAbank(bank_conflict).png" alt="多个线程同时访问同一个bank. 图片来自谭升的博客" style="max-width: 100%;"></a></p>
 <p>多个线程同时访问同一个bank产生bank conflict. 图片来自谭升的博客.</p>
 <blockquote>
 <p>这里对于bank conflict不做深入的介绍,具体可以参考这个链接的文章:<a href="https://segmentfault.com/a/1190000007533157" rel="nofollow">共享内存之bank冲突</a></p>
 </blockquote>
 <p><strong>相反,如果warp中的32个线程的内存访问映射到32个不同的存储体,那么可以同时提供服务,不会产生bank冲突,这种模式也被称为无冲突访问模式(conflict-free access)</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E6%97%A0%E5%86%B2%E7%AA%81%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E6%97%A0%E5%86%B2%E7%AA%81%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F.png" alt="每个线程都访问不同的bank. 图片来自谭升的博客" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E6%97%A0%E5%86%B2%E7%AA%81%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E6%97%A0%E5%86%B2%E7%AA%81%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8F.png" alt="每个线程都访问不同的bank. 图片来自谭升的博客" style="max-width: 100%;"></a></p>
 <p>最理想的访问模式, 每个线程都访问不同的bank. 图片来自谭升的博客.</p>
 <p>当然不规则访问的同时访问不同的bank也属于无冲突访问模式(conflict-free access)</p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%8D%E8%A7%84%E5%88%99%E8%AE%BF%E9%97%AE%E4%BD%86%E4%B9%9F%E4%B8%8D%E5%86%B2%E7%AA%81.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%8D%E8%A7%84%E5%88%99%E8%AE%BF%E9%97%AE%E4%BD%86%E4%B9%9F%E4%B8%8D%E5%86%B2%E7%AA%81.png" alt="" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%8D%E8%A7%84%E5%88%99%E8%AE%BF%E9%97%AE%E4%BD%86%E4%B9%9F%E4%B8%8D%E5%86%B2%E7%AA%81.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%8D%E8%A7%84%E5%88%99%E8%AE%BF%E9%97%AE%E4%BD%86%E4%B9%9F%E4%B8%8D%E5%86%B2%E7%AA%81.png" alt="" style="max-width: 100%;"></a></p>
 <p>不规则访问的无冲突访问模式(conflict-free access). 图片来自谭升的博客.</p>
 <hr>
 <h3>共享内存:无冲突广播访问(conflict-free broadcast access)</h3>
 <p><strong>当一个warp中的多个线程访问同一个bank,但是使用的是完全相同的地址时,可以通过硬件支持的广播机制来提供服务,不会出现存储体冲突(bank conflict)</strong>.这种访问模式称为无冲突广播访问模式(conflict-free broadcast access).</p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8C%E7%9A%84bank.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8C%E7%9A%84bank.png" alt="" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8C%E7%9A%84bank.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8C%E7%9A%84bank.png" alt="" style="max-width: 100%;"></a></p>
 <blockquote>
 <p>上图两条红色的线访问了同一个bank1的不同地址, 出现了bank冲突.</p>
 </blockquote>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8Cbank%E7%9A%84%E7%9B%B8%E5%90%8C%E5%9C%B0%E5%9D%80.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8Cbank%E7%9A%84%E7%9B%B8%E5%90%8C%E5%9C%B0%E5%9D%80.png" alt="" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8Cbank%E7%9A%84%E7%9B%B8%E5%90%8C%E5%9C%B0%E5%9D%80.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/%E4%B8%A4%E4%B8%AA%E7%BA%BF%E7%A8%8B%E8%AE%BF%E9%97%AE%E7%9B%B8%E5%90%8Cbank%E7%9A%84%E7%9B%B8%E5%90%8C%E5%9C%B0%E5%9D%80.png" alt="" style="max-width: 100%;"></a></p>
 <blockquote>
 <p>如上图, 虽然有两个线程都访问了同一个bank1,但是访问的是完全相同的地址.这种访问模式就称为无冲突广播访问模式(conflict-free broadcast access).</p>
 </blockquote>
@@ -431,11 +431,11 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 <li>稠密向量A则从全局内存加载到共享内存中,并且根据每个子列需要的向量划分到不同的内存块中.</li>
 <li>不同线程只需要访问不同的内存块,消除了bank冲突.</li>
 </ol>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMV.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMV.png" alt="各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMV.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMV.png" alt="各个线程访问不同的储存库,例如线程T0访问bank0,线程T1访问bank1" style="max-width: 100%;"></a></p>
 <hr>
 <h3>nmSPARSE: SpMM kernel的无冲突广播访问</h3>
 <p>nmSPARSE中的SpMM kernel将稠密矩阵A储存在共享内存中,将线程映射到稀疏矩阵B中的列来实现对A中所需元素的访问</p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMM.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMM.png" alt="" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMM.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE_SpMM.png" alt="" style="max-width: 100%;"></a></p>
 <ol>
 <li>通过将稠密A矩阵按行储存在共享内存中,如图A矩阵一行有32个元素,一行的元素刚好可以对应储存同在一个bank.</li>
 <li>每个线程负责稀疏B矩阵的每一列.</li>
@@ -451,8 +451,8 @@ N:M稀疏性只限制了非零元素的局部分布,每个M大小的窗口中的
 <li>随着粒度的增加，nmSPARSE内核在SpMM算子上可以比最快的基准实现高达6.0倍的加速。</li>
 <li>对Transformer的端到端研究表明，nmSPARSE优于其他基准。</li>
 </ol>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E9%92%88%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMV%E7%AE%97%E5%AD%90%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E9%92%88%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMV%E7%AE%97%E5%AD%90%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png" alt="nmSPARSE在CUDA核心上针对不同大小的SpMV算子的加速结果" style="max-width: 100%;"></a></p>
-<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMM%E7%AE%97%E5%AD%90%E5%9C%A850%25,75%25,90%25%E7%A8%80%E7%96%8F%E7%8E%87%E4%B8%8B%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png"><img src="img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMM%E7%AE%97%E5%AD%90%E5%9C%A850%25,75%25,90%25%E7%A8%80%E7%96%8F%E7%8E%87%E4%B8%8B%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png" alt="nmSPARSE在CUDA核心上对不同大小的SpMM算子在50%,75%,90%稀疏率下的加速结果" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E9%92%88%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMV%E7%AE%97%E5%AD%90%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E9%92%88%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMV%E7%AE%97%E5%AD%90%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png" alt="nmSPARSE在CUDA核心上针对不同大小的SpMV算子的加速结果" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMM%E7%AE%97%E5%AD%90%E5%9C%A850%25,75%25,90%25%E7%A8%80%E7%96%8F%E7%8E%87%E4%B8%8B%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%ADNM%E7%A8%80%E7%96%8F%E6%9D%83%E9%87%8D%E7%9A%84%E9%AB%98%E6%95%88GPU%E5%86%85%E6%A0%B8/nmSPARSE%E5%9C%A8CUDA%E6%A0%B8%E5%BF%83%E4%B8%8A%E5%AF%B9%E4%B8%8D%E5%90%8C%E5%A4%A7%E5%B0%8F%E7%9A%84SpMM%E7%AE%97%E5%AD%90%E5%9C%A850%25,75%25,90%25%E7%A8%80%E7%96%8F%E7%8E%87%E4%B8%8B%E7%9A%84%E5%8A%A0%E9%80%9F%E7%BB%93%E6%9E%9C.png" alt="nmSPARSE在CUDA核心上对不同大小的SpMM算子在50%,75%,90%稀疏率下的加速结果" style="max-width: 100%;"></a></p>
 <p>nmSPARSE在CUDA核心上对不同大小的SpMM算子在50%,75%,90%稀疏率下的加速结果</p>
 <hr>
 <h2>结语</h2>
