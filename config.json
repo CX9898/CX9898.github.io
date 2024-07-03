@@ -2,5 +2,11 @@
     "title":"CX98的博客",
     "subTitle":"HPC练习生, Git:https://github.com/CX9898",
     "avatarUrl":"https://cx9898.github.io/img/CX.jpg",
-    "GMEEK_VERSION":"last"
+    "GMEEK_VERSION":"last",
+    "startSite":"03/07/2024",
+    "onePageListNum":15,
+    "iconList":{"关于":"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z"},
+    "exlink":{"关于":"https://github.com/CX9898"},
+    "i18n":"CN",
+    "bottomText":"❤️ 转载文章请注明出处，谢谢！❤️"
 }
