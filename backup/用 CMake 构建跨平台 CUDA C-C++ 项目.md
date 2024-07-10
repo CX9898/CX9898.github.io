@@ -419,6 +419,7 @@ install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 [FindCUDAToolkit - CMake 3.30.0 Documentation](https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html)
 
 [Linux嵌入式：全网最细的CMake教程！(强烈建议收藏)](https://zhuanlan.zhihu.com/p/534439206)
+
 [佳佳：学C++从CMake学起](https://zhuanlan.zhihu.com/p/657235610)
 
 [使用 CMake 构建跨平台 CUDA 应用程序](https://developer.nvidia.com/zh-cn/blog/building-cuda-applications-cmake/)
