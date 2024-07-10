@@ -1,4 +1,4 @@
-![封面](/img/用 CMake 构建跨平台 CUDA C C++项目/封面.png)
+![封面](/img/用_CMake_构建跨平台_CUDA_C_C++项目/封面.png)
 
 # 用 CMake 构建跨平台 CUDA C/C++ 项目
 
@@ -36,7 +36,7 @@ $ nacc kernel.o main.o -o main
 
 为了解决以上这个问题, 就有了跨平台的CMake.
 
-![Cross-platform Make](/img/用 CMake 构建跨平台 CUDA C C++项目/cross-platform Make.png)
+![Cross-platform Make](/img/用_CMake_构建跨平台_CUDA_C_C++项目/cross-platform Make.png)
 
 CMake 是一个跨平台的自动化构建系统, 用来管理软件构建的程序, 并不依赖于某特定编译器. CMake 并不直接建构出最终的软件, 而是产生标准的建构档(如Unix的Makefile或Windows的Visual C++的projects/workspaces), 然后再依一般的建构方式使用.
 
@@ -179,7 +179,7 @@ set(CMAKE_CUDA_ARCHITECTURES 70)
 
 >通过NVIDIA驱动的 `nvidia-smi` 命令能查看GPU信息, 或直接输入 `nvidia-smi -q | grep Architecture` 查看架构信息. 具体架构和对应的参数可以参考下表 :
 
-![GPU架构和对应的参数列表](/img/用 CMake 构建跨平台 CUDA C C++项目/GPU虚拟架构功能列表.png)
+![GPU架构和对应的参数列表](/img/用_CMake_构建跨平台_CUDA_C_C++项目/GPU虚拟架构功能列表.png)
 GPU架构和对应的参数列表
 
 ***
@@ -324,7 +324,7 @@ $ make
 
 最终在 build 文件夹中就会生成可执行文件:
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Linux构建结果.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Linux构建结果.png)
 
 > 也可以直接使用 `cmake --build build` 来创建 build 文件夹并开始构建.
 
@@ -332,33 +332,33 @@ $ make
 
 首先选择 CMakeLists.txt 文件所在的路径.
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window使用CMake选择项目源目录.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window使用CMake选择项目源目录.png)
 
 选择构建的位置. 选择在项目目录中创建的 build 文件夹.
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window使用CMake选择构建的位置.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window使用CMake选择构建的位置.png)
 
 选择完后点击 `Configure` 按钮.
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window使用CMake选择configure.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window使用CMake选择configure.png)
 
 选择编译器, 推荐使用 [visual studio](https://visualstudio.microsoft.com/zh-hans/). 然后点击 `Finish` .
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window使用CMake选择编译器.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window使用CMake选择编译器.png)
 
 可以在变量 `CMAKE_INSTALL_PREFIX` 中设置要安装的路径, 然后点击 `Generate` 开始构建.
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window使用CMake构建页面.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window使用CMake构建页面.png)
 
 构建成功后, 旁边的 `Open Project` 按钮也亮了, 点击 `Open Project` 进入编译器开始编译.
 
 右边的解决方案资源管理器中选择 `ALL_BUILD` , 右键选择 `生成` .
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window VS解决方案资源管理器.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window VS解决方案资源管理器.png)
 
 `ALL_BUILD` 完成后, 项目目录的 build 文件夹中的 Debug 目录里就已经生成可执行文件了.
 
-![](/img/用 CMake 构建跨平台 CUDA C C++项目/Window构建结果.png)
+![](/img/用_CMake_构建跨平台_CUDA_C_C++项目/Window构建结果.png)
 
 要编译 Release 版本只需要构建前在变量 `CMAKE_CONFIGURATION_TYPES` 中设置为 `Release` 即可.
 
