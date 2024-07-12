@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Wed, 10 Jul 2024 12:57:17 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用 CMake 构建跨平台 CUDA C/C++ 项目</title><link>https://CX9898.github.io/post/yong-%20CMake%20-gou-jian-kua-ping-tai-%20CUDA%20C-C%2B%2B%20-xiang-mu.html</link><description>![封面](/img/用_CMake_构建跨平台_CUDA_C_C++项目/封面.png)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Fri, 12 Jul 2024 07:31:35 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用 CMake 构建跨平台 CUDA C/C++ 项目</title><link>https://CX9898.github.io/post/yong-%20CMake%20-gou-jian-kua-ping-tai-%20CUDA%20C-C%2B%2B%20-xiang-mu.html</link><description>![封面](/img/用_CMake_构建跨平台_CUDA_C_C++项目/封面.png)&#13;
 &#13;
 # 用 CMake 构建跨平台 CUDA C/C++ 项目&#13;
 &#13;
@@ -156,15 +156,18 @@ enable_language(CUDA)&#13;
 &#13;
 ### 设置 C++ 标准&#13;
 &#13;
+*要使用 C++ 的一些新特性则需要指定 C++ 标准.*&#13;
+&#13;
 *`set()` 用于定义/修改变量值.*&#13;
 &#13;
-要使用 C++ 的一些新特性则需要指定 C++ 标准, 通过 CMake 内置变量 CMAKE_CXX_STANDARD 设置项目使用的 C++ 标准.&#13;
+*通过修改 CMake 内置变量 `CMAKE_CXX_STANDARD` 来设置项目中 C++ 源文件(.cpp等)使用的 C++ 标准, 通过修改变量 `CMAKE_CUDA_STANDARD` 来设置 CUDA 源文件(.cu)使用的 C++ 标准.* 这是因为源文件可能由不同的编译器处理, CUDA 源文件用 nvcc 编译, 而 C++ 源文件可能会用 g++ 等工具编译.&#13;
 &#13;
 ```cmake&#13;
 set(CMAKE_CXX_STANDARD 11)&#13;
+set(CMAKE_CUDA_STANDARD 11)&#13;
 ```&#13;
 &#13;
-&gt; 通过设置变量 CMAKE_CXX_STANDARD_REQUIRED 为 ON 可以强制使用指定的 C++ 标准. 如果编译器不支持指定的 C++ 标准, CMake 构建过程将报错&#13;
+&gt; 通过设置变量 `CMAKE_CXX_STANDARD_REQUIRED` 为 `ON` 可以强制使用指定的 C++ 标准. 如果编译器不支持指定的 C++ 标准, CMake 构建过程将报错.&#13;
 &#13;
 ***&#13;
 &#13;

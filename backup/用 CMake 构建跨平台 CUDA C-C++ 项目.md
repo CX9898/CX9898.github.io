@@ -155,15 +155,18 @@ enable_language(CUDA)
 
 ### 设置 C++ 标准
 
+*要使用 C++ 的一些新特性则需要指定 C++ 标准.*
+
 *`set()` 用于定义/修改变量值.*
 
-要使用 C++ 的一些新特性则需要指定 C++ 标准, 通过 CMake 内置变量 CMAKE_CXX_STANDARD 设置项目使用的 C++ 标准.
+*通过修改 CMake 内置变量 `CMAKE_CXX_STANDARD` 来设置项目中 C++ 源文件(.cpp等)使用的 C++ 标准, 通过修改变量 `CMAKE_CUDA_STANDARD` 来设置 CUDA 源文件(.cu)使用的 C++ 标准.* 这是因为源文件可能由不同的编译器处理, CUDA 源文件用 nvcc 编译, 而 C++ 源文件可能会用 g++ 等工具编译.
 
 ```cmake
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CUDA_STANDARD 11)
 ```
 
-> 通过设置变量 CMAKE_CXX_STANDARD_REQUIRED 为 ON 可以强制使用指定的 C++ 标准. 如果编译器不支持指定的 C++ 标准, CMake 构建过程将报错
+> 通过设置变量 `CMAKE_CXX_STANDARD_REQUIRED` 为 `ON` 可以强制使用指定的 C++ 标准. 如果编译器不支持指定的 C++ 标准, CMake 构建过程将报错.
 
 ***
 
