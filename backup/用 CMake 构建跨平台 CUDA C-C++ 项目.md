@@ -50,9 +50,9 @@ CMake 是一个跨平台的自动化构建系统, 用来管理软件构建的程
 
 ## 安装工具
 
-要使用CUDA, 当然首要至少要有一个NVIDIA的GPU设备. 然后安装以下工具 :
+要使用 CUDA, 当然首要至少要有一个 NVIDIA 的 GPU 设备. 然后安装以下工具 :
 - CUDA Toolkit : [Download CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit)
-- CMake : Linux(Ubuntu)系统可以通过命令sudo apt install cmake安装. 推荐去官网下载新版本后安装 [Download CMake](https://cmake.org/download/)
+- CMake : Linux(Ubuntu) 系统可以通过命令 `sudo apt install cmake` 安装. 推荐去官网下载新版本后安装 [Download CMake](https://cmake.org/download/)
 - C/C++ 编译器 : Linux 使用 gcc/g++. Window 推荐使用 [visual studio](https://visualstudio.microsoft.com/zh-hans/)
 
 ***
