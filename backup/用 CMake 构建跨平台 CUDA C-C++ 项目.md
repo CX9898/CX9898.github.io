@@ -117,13 +117,12 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\libnvvp
 
 ### 设置CMake版本
 
-首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容.
+首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容. 3.26 版本是一个较新的稳定版本.
 
 ```cmake
 cmake_minimum_required(VERSION 3.26)
 ```
 
->3.26 版本是一个较新的稳定版本.
 >CMake 从3.11版本开始支持 CUDA.
 
 ***

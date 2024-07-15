@@ -128,13 +128,12 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\libnvvp
 
 ### 设置CMake版本
 
-首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容.
+首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容. 3.26 版本是一个较新的稳定版本.
 
 ```cmake
 cmake_minimum_required(VERSION 3.26)
 ```
 
->3.26 版本是一个较新的稳定版本.
 >CMake 从3.11版本开始支持 CUDA.
 
 ***
@@ -516,13 +515,12 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\libnvvp
 
 ### 设置CMake版本
 
-首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容.
+首先使用 `cmake_minimum_required()` 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容. 3.26 版本是一个较新的稳定版本.
 
 ```cmake
 cmake_minimum_required(VERSION 3.26)
 ```
 
->3.26 版本是一个较新的稳定版本.
 >CMake 从3.11版本开始支持 CUDA.
 
 ***
@@ -916,11 +914,10 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.5\libnvvp
 <p>下面一步一步讲解如何在配置文件中构建一个 CUDA C/C++项目, 并指出构建 CUDA 项目额外需要的步骤.</p>
 <hr>
 <h3>设置CMake版本</h3>
-<p>首先使用 <code class="notranslate">cmake_minimum_required()</code> 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容.</p>
+<p>首先使用 <code class="notranslate">cmake_minimum_required()</code> 指定使用的 CMake 最低版本号, 如果使用的 CMake 版本低于指定的最低版本号, 构建过程可能会失败或不兼容. 3.26 版本是一个较新的稳定版本.</p>
 <div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">cmake_minimum_required</span>(<span class="pl-k">VERSION</span> 3.26)</pre></div>
 <blockquote>
-<p>3.26 版本是一个较新的稳定版本.<br>
-CMake 从3.11版本开始支持 CUDA.</p>
+<p>CMake 从3.11版本开始支持 CUDA.</p>
 </blockquote>
 <hr>
 <h3>创建项目</h3>
