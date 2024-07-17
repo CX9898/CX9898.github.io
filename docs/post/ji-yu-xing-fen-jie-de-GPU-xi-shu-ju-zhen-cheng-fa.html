@@ -19,6 +19,8 @@
 
 稀疏矩阵稠密矩阵乘法(SpMM)和采样稠密-稠密矩阵乘法(SDDMM)是各种计算领域中重要的稀疏核. 论文提出了一种**基于行分解(RoDe)的方法来优化GPU上的两个内核**.使用了标准的压缩稀疏行(CSR)格式. 具体来说,**RoDe将稀疏矩阵行划分为规则部分和残差部分, 分别充分优化它们的计算.还设计了相应的负载均衡和细粒度流水线技术**.与最先进的替代方案相比, Rode的SpMM内核最高达到7.86倍加速, SDDMM内核最高达到8.99倍加速.
 
+文章链接[[论文笔记]基于行分解的GPU稀疏矩阵乘法](https://zhuanlan.zhihu.com/p/703369002)
+
 ***
 
 ## 图形处理器(GPU)
@@ -237,6 +239,8 @@ SDDMM性能结果. 图中每个点表示连续5个矩阵集的平均GFLOP.
 论文于2024年发表在PPoPP '24: Proceedings of the 29th ACM SIGPLAN Annual Symposium on Principles and Practice of Parallel Programming.
 
 稀疏矩阵稠密矩阵乘法(SpMM)和采样稠密-稠密矩阵乘法(SDDMM)是各种计算领域中重要的稀疏核. 论文提出了一种**基于行分解(RoDe)的方法来优化GPU上的两个内核**.使用了标准的压缩稀疏行(CSR)格式. 具体来说,**RoDe将稀疏矩阵行划分为规则部分和残差部分, 分别充分优化它们的计算.还设计了相应的负载均衡和细粒度流水线技术**.与最先进的替代方案相比, Rode的SpMM内核最高达到7.86倍加速, SDDMM内核最高达到8.99倍加速.
+
+文章链接[[论文笔记]基于行分解的GPU稀疏矩阵乘法](https://zhuanlan.zhihu.com/p/703369002)
 
 ***
 
@@ -509,6 +513,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p><strong>A Row Decomposition-based Approach for Sparse Matrix Multiplication on GPUs</strong></p>
 <p>论文于2024年发表在PPoPP '24: Proceedings of the 29th ACM SIGPLAN Annual Symposium on Principles and Practice of Parallel Programming.</p>
 <p>稀疏矩阵稠密矩阵乘法(SpMM)和采样稠密-稠密矩阵乘法(SDDMM)是各种计算领域中重要的稀疏核. 论文提出了一种<strong>基于行分解(RoDe)的方法来优化GPU上的两个内核</strong>.使用了标准的压缩稀疏行(CSR)格式. 具体来说,<strong>RoDe将稀疏矩阵行划分为规则部分和残差部分, 分别充分优化它们的计算.还设计了相应的负载均衡和细粒度流水线技术</strong>.与最先进的替代方案相比, Rode的SpMM内核最高达到7.86倍加速, SDDMM内核最高达到8.99倍加速.</p>
+<p>文章链接<a href="https://zhuanlan.zhihu.com/p/703369002" rel="nofollow">[论文笔记]基于行分解的GPU稀疏矩阵乘法</a></p>
 <hr>
 <h2>图形处理器(GPU)</h2>
 <p>物理上, <strong>GPU是由一组流式多处理器(SMs)组成. GPU内核中, 线程(threads)被分成很多个线程块(thread blocks), 在每个线程块(thread blocks)内连续的32个线程组成一组, 称为线程束(warp)</strong>.</p>
