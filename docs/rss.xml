@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Wed, 17 Jul 2024 16:40:27 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用 CMake 构建跨平台 CUDA C/C++ 项目</title><link>https://CX9898.github.io/post/yong-%20CMake%20-gou-jian-kua-ping-tai-%20CUDA%20C-C%2B%2B%20-xiang-mu.html</link><description>![封面](/img/用_CMake_构建跨平台_CUDA_C_C++项目/封面.png)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Wed, 17 Jul 2024 16:41:10 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用 CMake 构建跨平台 CUDA C/C++ 项目</title><link>https://CX9898.github.io/post/yong-%20CMake%20-gou-jian-kua-ping-tai-%20CUDA%20C-C%2B%2B%20-xiang-mu.html</link><description>![封面](/img/用_CMake_构建跨平台_CUDA_C_C++项目/封面.png)&#13;
 &#13;
 # 用 CMake 构建跨平台 CUDA C/C++ 项目&#13;
 &#13;
@@ -806,6 +806,8 @@ CPU上的DRAM内存通常远远大于GPU上的全局内存容量. 用GPU进行�
 在深度学习领域中,N:M稀疏性越来越受欢迎. 但因为缺乏针对各种稀疏比的通用GPU kernel库,论文介绍了一个**高效GPU kernel库: nmSPARSE. 用于具有N:M稀疏权重的神经网络的两种基本操作:稀疏矩阵-向量乘法(SpMV)和稀疏矩阵-矩阵乘法(SpMM).**&#13;
 &#13;
 论文主要探讨针对N:M稀疏性的稀疏矩阵-向量乘法和稀疏矩阵-矩阵乘法的GPU加速. 下面先介绍什么是权重剪枝和N:M稀疏性.&#13;
+&#13;
+文章链接 : [[论文笔记]深度学习中N:M稀疏权重的高效GPU内核](https://zhuanlan.zhihu.com/p/693908902)&#13;
 &#13;
 ***&#13;
 &#13;
