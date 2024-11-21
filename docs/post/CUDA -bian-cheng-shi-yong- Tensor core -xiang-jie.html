@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://cx9898.github.io/img/CX.jpg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)
+
+# CUDA 编程使用 Tensor core 详解
+
+前言
+
+最近在学习怎么使用 Tensor core.
+主要通过 [NVIDIA 官方文档](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions)和
+[cuda-samples](https://github.com/NVIDIA/cuda-samples) 项目中关于 Tensor core 部分的实际代码示例结合其他文章做出总结,
+再结合使用过程中的一些问题写出这篇文章.
+本文首先解释了什么是 Tensor core 再详细说明在实际编程中如何使用 Tensor core.
+
+文章链接 : [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)
+
+---
+
+## 什么是 Tensor core
+
+在 2017 GPU 技术大会(GTC 2017)上, NVIDIA推出了新一代 Volta 架构,
+以及使用新架构的第一款设备 : 适用于深度学习任务的加速卡 Tesla V100.
+Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).
+Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.
+**Tensor core 主要设计用于加速矩阵计算.**
+
+![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla%20V100单个SM架构图.png)
+<p style='text-align:center'>Tesla V100单个SM架构图</p>
+
+**Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.
+将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.**
+
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20Core%20执行4x4x4矩阵相乘累加.png)
+<p style='text-align:center'>Tensor Core 执行4x4x4矩阵相乘累加</p>
+
+每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 **D = A * B + C**, 其中 **A, B, C, D 是 4×4 矩阵**.
+A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单精度(FP32)的矩阵.
+
+> 混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.
+
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20中的混合精度相乘和累加操作.png)
+<p style='text-align:center'>Tensor core 中的混合精度相乘和累积操作</p>
+
+---
+
+## 为什么使用 Tensor core
+
+Tesla V100 单个 SM 架构图中可以看到, 单个 SM 中分为4个 sub core.
+一个 sub core 中的 CUDA core 单个时钟周期可以执行 16 次 FFMA 操作.
+**一个 sub core 中有两个 Tensor core, 单个 Tensor core 每个时钟可以执行 64 次 FFMA 混合精度运算(FP16 乘法与 FP32
+累加). **
+比起 CUDA core, 使用 Tensor core 的吞吐量提升了8倍.
+
+> FFMA(Fused Floating-Point Multiply-Add)是一种在 GPU 上执行的高效数学运算,
+> 将 32 位浮点数的乘法和加法两个操作融合在一个指令中完成, 从而提高性能和减少计算延迟.
+
+Tesla V100 在一个 SM 单元中有8个 TensorCore, 每个时钟可执行共计 1024 次浮点运算.  
+使用 Volta 架构的 V100 GPU 相比于上一代 Pascal 架构的 P100 GPU 的吞吐量一共提升了 12 倍.
+
+![Pascal架构和Volta架构矩阵运算速度对比](/img/CUDA_编程使用_Tensor_core_详解/Pascal架构和Volta架构矩阵运算速度对比.gif)
+<p style='text-align:center'>Pascal架构和Volta架构矩阵运算速度对比</p>
+
+CUDA core 中, 每次进行一个点和一行进行相乘依次得到新的矩阵, 而 Tensor core 中是一个矩阵和另一个矩阵直接相乘得到新的矩阵.
+
+> 运算从依次从一行和一列进行相乘得到结果,变化到一个矩阵与另一个矩阵直接相乘得到结果, 则编程思路也要进行变化.
+> 下一节说明使用 Tensor core 的思路.
+
+---
+
+## 分块(tilling)
+
+矩阵乘法一般使用分块 (tilling) 技术将大矩阵划分为许多小块 (tile) 分别进行计算,
+通过对小块矩阵进行乘法运算, 降低了算法的时间复杂度, 并能够更好地利用缓存.
+**而每一个结果矩阵的块 (tile) 都是由**
+**两个相乘矩阵 (A, B矩阵) 的块 (tile) 沿着 K 维度 (A矩阵的行, B矩阵的列) 相乘并累加得到的.**
+
+![计算和储存匹配CUDA模型的分层结构](/img/CUDA_编程使用_Tensor_core_详解/计算和储存匹配CUDA模型的分层结构.png)
+<p style='text-align:center'>计算和储存匹配CUDA模型的分层结构</p>
+
+分块技术将 A, B 和 C 矩阵按照相对应的维度 (例如 C 块的维度是 m × n, A 块是 m × k, B 块是 k × n) 分为无数个小的矩阵块.
+一个 m × n 的 C 块的结果由对应 m × k 的 A 块 和 k × n 的 B 块沿着 K 维相乘并累加得到.
+
+如下图所示, 要计算一个 32 × 8 的 C 块, 它在结果矩阵 C 的位置是最左上角, 也就是由1~32行和1~8列组成的矩阵块.
+设 k = 16, 则首先计算A矩阵的第0~31行和第0~15列组成的A块与B矩阵的第0~15行和第0~7列组成的B块相乘得到中间结果矩阵acc(
+accumulator-1)块,
+再计算由第0~31行和第16~31列组成的A块与第16~31行和第0~7列组成的B块相乘得到的新的acc(accumulator-2)块与上一次的acc(
+accumulator-1)块做矩阵加法.
+沿K维循环迭代进行, 最终遍历计算 A 矩阵第0~31行的所有数据和 B 矩阵第0~7列的所有数据得到最终结果矩阵 C 块.
+
+![分块矩阵相乘累加示例.png](/img/CUDA_编程使用_Tensor_core_详解/分块矩阵相乘累加示例.png)
+<p style='text-align:center'>分块矩阵相乘累加示例</p>
+
+**使用分块技术来计算矩阵乘法最主要的操作就是两个矩阵块相乘, 将结果矩阵块累加到上一次的结果矩阵块.
+Tensor core 就是用于计算矩阵相乘和累加的操作.**
+
+将矩阵按照 Tensor core 支持的矩阵维度来分块, 随后将 A 块 和 B 块利用 Tensor core 沿着 K 维相乘累加得到结果矩阵 C 块.
+再进行同样的操作来计算下一个 C 块, 最后所有的 C 块结合起来得到最终的结果矩阵.
+
+> 也可以通过使用 cuBLAS 和 cuDNN 这两个 CUDA 库来间接使用 Tensor Cores.
+> cuBLAS 利用 Tensor Cores 加速密集矩阵乘法(GEMM)计算;
+> cuDNN 则利用 Tensor Cores 加速卷积和循环神经网络(RNNs)的计算.
+
+---
+
+## WMMA API
+
+CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便开发者可以使用 GPU 上的 Tensor Core.
+称为WMMA(Warp-level Matrix Multiply and Accumulate)API.
+通过 WMMA API, 可以将 D = A × B + C 运算使用 warp 级别进行操作,
+其中的A、B、C、D都是更大矩阵的块(tile). 也就是可以使用一个 warp (32个线程) 来计算一个结果矩阵块.
+
+**实际工作中, 一个warp中的每个线程都只计算结果矩阵块的8个数据(16×16/32).**
+
+Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.
+
+![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20WMMA%20API%20目前支持的格式和矩阵维度.png)
+<p style='text-align:center'>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
+
+> 这里只列出部分常用格式.
+> Tensor core 还支持特殊格式, 详细可在官网查看 :
+> [CUDA C++ Programming Guide 7.24.6. Element Types and Matrix Sizes](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#element-types-and-matrix-sizes)
+
+要通过 WMMA API 来使用 Tensor core 只需要简单4个步骤 :
+
+- 首先创建用于储存矩阵块的 fragment 类
+- 将矩阵块读取到 fragment 类中
+- 进行矩阵乘法累加计算
+- 最后将计算结果写回到结果矩阵
+
+> 调用前需要检查 GPU 是否带有 Tensor core, 并且在构建项目时设置对应的 GPU 架构.
+> 构建方式可以查看另一篇文章 : [用 CMake 构建跨平台 CUDA C/C++ 项目](https://zhuanlan.zhihu.com/p/701581020)
+
+WMMA API的所有函数和类型都在头文件 `mma.h` 中的 `namespace::nvcuda::wmma` 命名空间中定义.
+为了简化代码的同时避免命名空间冲突, 保持 `wmma` 的显示, 只使用 `nvcuda` 命名空间.
+
+```C++
+#include <mma.h>
+using namespace nvcuda;
+```
+
+---
+
+### fragment 类
+
+**fragment 是一个重载类, 用于储存矩阵片段(块)的数据.**
+
+```C++
+template<typename Use, int m, int n, int k, typename T, typename Layout=void> class fragment;
+
+// examples
+wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> aFrag;
+wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::col_major> bFrag;
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> cFrag;
+```
+
+- `Use` : 用作第一个乘数的矩阵使用 `matrix_a` , 第二个乘数的矩阵使用 `matrix_b` . 当分别用作累加器C或目标累加器D时使用
+  `accumulator`
+- `m` , `n` , `k` : 表示参与乘法和累积操作的矩阵块的形状, 比如说矩阵A块是m×k, 矩阵B块是k×n, 矩阵C块是m×n
+- `T` : 使用的数据类型. `double` , `float` , `__half` , `__nv_bfloat16` , `char` , `unsigned char`
+- `Layout` : 表示矩阵是以行主序 `row_major` 或列主序 `col_major` 的形式保存在内存中, 当 `Use` 参数使用 `accumulator`
+  时则不需要填写,
+  默认是列主序储存
+
+成员变量 `num_elements` 记录元素总数, 一般为8. 配合成员变量 `x` 可以遍历所有元素. 例如让储存的所有元素乘2 :
+
+```C++
+for (int idx = 0; idx < frag.num_elements; ++idx) {
+    frag.x[idx] *= 2;
+}
+```
+
+官方文档(CUDA C++ Programming Guide)中关于fragment类的描述说 'The mapping of matrix elements into fragment internal
+storage is unspecified and subject to change
+in future architectures.'
+也就是说通过以上方式不能准确知道遍历过程中当前 `idx` 下的 `frag.x[idx]` 在实际矩阵块中的哪个位置.
+
+但是实际可以直接通过将同一个warp中的每个线程(lane)储存的元素全部打印出来对照查看就能知道.
+以下列表是当m,n,k都分别设置为16的情况下每个线程储存原始矩阵的位置.
+
+> Warp是CUDA中最小的执行单元, 它由一组固定数量的线程组成(在NVIDIA的Fermi架构及以后的GPU中, 一个warp包含32个线程).
+> 同一个warp中, 每个线程被称为一个'lane', 术语来自于'车道'的比喻, 就像在高速公路上, 每个车道可以独立行驶一辆车.
+> 每个lane可以看作是一个独立的执行路径, 它们共享warp的执行状态, 但各自有自己的寄存器和执行流.
+
+![m16n16k16情况下,部分线程fragment类中储存的原矩阵块C的元素位置.png](/img/CUDA_编程使用_Tensor_core_详解/m16n16k16情况下,部分线程fragment类中储存的原矩阵块C的元素位置.png)
+<p style='text-align:center'>m16n16k16情况下, 部分线程fragment类中储存的原矩阵块C的元素位置. 行标为laneId, 列标为fragment类的Index. 数据为[row,col]</p>
+
+通过上图可以发现一些规律:
+
+1. 从每个线程储存的行数上看, 线程的每两个Index储存相同的行元素, 并且Index为0~1和4~5储存了相同的行元素, 2~3和6~
+   7储存了相同的行元素. 也就是每个线程只储存了两个行元素, 并且相差为8, 0~1和4~5是小一些的行数.
+2. 从每个线程储存的列数上看, 线程的每两个Index储存连续的两列元素, 并且Index为0和2储存了相同的列元素, 1和3储存了相同列元素.
+   也就是每个线程储存了4个列元素, 并且每两个列元素相差为8, 前4个Index储存了小一些的列数.
+3. 从每个线程储存的列数与Index对比, 发现Index为偶数时, 储存的列数也为偶数, Index为奇数时, 储存的列数也为奇数.
+4. 原矩阵同一行的数据由每连续的4个线程储存.
+5. 0到15行数据中, 行数以8为分界线, T0储存第0行和第8行的元素, 之后根据规律③增加.
+6. 0到15列数据中, 列数以8为分界线, 每个线程的每两个Index储存连续的2列的元素. 根据规律③的4个线程为一组, 组内第0号线程,
+   储存0,1,8,9列元素, 第1号线程储存2,3,10,11列元素, 以此类推.
+
+例如要找到原矩阵块中第1行第12列的是在哪个线程储存, 储存的Index是多少?
+可以先**通过行数, 根据第④和第⑤条规律计算出从哪个线程ID开始储存**.
+
+```C++
+const int startLane = localRow % 8 * 4;
+```
+
+从以上公式算出[1,12]是由第4号开始的线程储存, 也就是4~7线程储存了第1行元素.
+
+再**通过列数, 根据第④和第⑥条规律计算出在连续四个线程中的哪个线程储存了该元素**. 最终得到线程(lane)ID.
+
+```C++
+laneId = startLane + localCol % 8 / 2;
+```
+
+从以上公式算出[1,12]是由第6号线程储存. 知道了线程Id之后还需要知道属于fragment类中的哪个Index储存.
+
+最后**根据第①, ②和③条规律计算出元素所在fragment类中的Index**.
+
+```C++
+const int isBigRow = localRow / 8;
+const int isBigCol = localCol / 8;
+index = isBigCol * 4 + isBigRow * 2 + localCol % 2;
+```
+
+最终得到第1行第12列的数据由fragment类的Index为4的第6号线程储存.
+
+以上规律虽然说可能会在未来的架构中改变, 但是在短时间内大概率不会进行更改. 并且未来更改了也可以根据这样的方式找到计算的方法.
+
+---
+
+### 加载矩阵数据
+
+`load_matrix_sync()` 函数用于从内存加载矩阵的片段到 fragment 类中. 并且**开始前会进行线程同步(sync)操作.**
+
+```C++
+void load_matrix_sync(fragment<...> &a, const T* mptr, unsigned ldm);
+void load_matrix_sync(fragment<...> &a, const T* mptr, unsigned ldm, layout_t layout);
+```
+
+- `a` : 函数输出. 储存矩阵片段的 fragment 类
+- `mptr` : 必须是一个 256 位对齐的指针, 指向内存中矩阵第一个要加载的元素
+- `ldm` : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量
+- `layout` : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 : `mem_row_major` 或列主序 : `mem_col_major`
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.
+
+如果**要加载的块不满足对应的矩阵维度, 结果将出错**. 也就是说要保证输入矩阵块的大小和 fragment 类的参数相匹配.
+例如指定的fragment类的m,n,k分别为32,8,16, 那么加载的矩阵块A的大小必须是32×16, 矩阵块B的大小必须是16×8.
+
+> 特别是在进行K迭代时, 要注意是否超过了原始矩阵的大小.
+
+---
+
+### 矩阵计算
+
+`mma_sync()` 函数进行矩阵乘法累加计算. 会在**开始前进行线程同步(sync)操作.**
+
+```C++
+void mma_sync(fragment<...> &d, const fragment<...> &a, const fragment<...> &b, const fragment<...> &c, bool satf=false);
+```
+
+- d , a , b , c : 表示对应的矩阵片段
+- satf :  饱和有限值模式, 也就是安全模式. 默认为 `false` , 如果设置为 `true` , 则目标累加器有以下额外的数值属性 :
+    - 如果一个元素的计算结果为正无穷, 则对应的累加器将会包含 `+MAX_NORM`
+    - 如果一个元素的计算结果为负无穷, 则对应的累加器将会包含 `-MAX_NORM`
+    - 如果一个元素的计算结果为 NaN, 则对应的累加器将包含 `+0`
+
+> 矩阵之间片段的形状必须匹配, 也就是参数 `m` , `n` , `k` 需要相匹配.
+
+将 A 块和 B 块相乘, 结果累加到 acc 块中 :
+
+```C++
+mma_sync(accFrag, aFrag, bFrag, accFrag);
+```
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.
+
+---
+
+### 存储矩阵数据
+
+`store_matrix_sync()` 函数与 `load_matrix_sync()` 函数相反, 是将矩阵片段存储回内存中. 也会在开始前进行线程同步(sync)操作.
+
+```C++
+void store_matrix_sync(T* mptr, const fragment<...> &a, unsigned ldm, layout_t layout);
+```
+
+- `mptr` : 必须是一个256位对齐的指针, 指向数据储存的第一个位置
+- `a` : 源矩阵片段 fragment 类
+- `ldm` : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量
+- `layout` : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 `mem_row_major` 或列主序 `mem_col_major`
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用
+
+---
+
+### 填充矩阵数据
+
+`fill_fragment()` 是用于对矩阵片段 `fragment<>` 类进行操作, 可以用常量值 `v` 来填充整个矩阵片段.
+
+```C++
+void fill_fragment(fragment<...> &a, const T& v);
+```
+
+一般用于对创建的 fragment 类进行初始化, 例如将记录中间结果的 acc 块先初始化为 0 :
+
+```C++
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> accFrag;
+wmma::fill_fragment(accFrag, 0.0f);
+```
+
+---
+
+## cuBLAS 库使用 Tensor core
+
+使用 cuBLAS 库先要创建...........
+目前只有 GEMM 操作支持使用 Tensor core, 要使用 Tensor core 需要设置数学模式为 : `CUBLAS_TENSOR_OP_MATH` .
+
+```C++
+cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+```
+
+A, B 和 C 矩阵都默认为列主序储存
+
+参数:
+
+- `CUBLAS_OP_N` : 非转置操作
+- `CUBLAS_OP_T` : 转置操作
+- `CUBLAS_OP_C` : 共轭转置操作
+
+> 共轭转置 : 要理解共轭转置首先要了解什么是实数什么是虚数.
+> 实数是可以在数轴上面表示的数, 也就是平常接触到的数, 可以进行标准的加减乘除操作.
+> 复数是由实数和虚数部分组成的数, 基本形式为 a + b * i ,
+> 其中 a 是实部(可以是任何实数), b 是虚部(可以是任何实数), i 是虚数单位(满足 i² = -1 ).
+> 实数是复数的一个子集(也就是 b = 0 时). 复数在实数系统中无法表示,
+> 复数的引入扩展了数学的边界, 使得能够解决一些在实数范围内无法解决的问题.
+> 而共轭转置就是将一个复数 a + b * i 变为 a - b * i
+
+---
+
+## 示例
+
+下面是使用WMMA API计算稠密矩阵-稠密矩阵乘法的示例. 其中矩阵A和矩阵B的类型为half, 结果矩阵C的类型为float.
+矩阵块维度m,n和k都是16. 所有矩阵都以行主序储存.
+
+```C++
+// According to the planning of cuda thread blocks, 
+// calculate the row id and column id of the resulting matrix block C to be computed by the current warp.
+int cRow, cCol;
+
+wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> aFrag;
+wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> bFrag;
+
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> accFrag;
+fill_fragment(accFrag, 0.0f);
+
+// All matrices are stored in row-order
+const int lda = K;
+const int ldb = N;
+const int ldc = N;
+
+for (int kIter = 0; kIter < K; kIter += WMMA_K) {
+const int aRow = cRow;
+const int aCol = kIter;
+
+const int bRow = kIter;
+const int bCol = cCol;
+
+// bounds checking
+if (aRow < M && aCol < K && bRow < K && bCol < N) {
+const half* aOffsetPtr = mtrA + aRow * lda + aCol;
+const half* bOffsetPtr = mtrB + bRow * ldb + bCol;
+
+load_matrix_sync(aFrag, aOffsetPtr, lda);
+load_matrix_sync(bFrag, bOffsetPtr, ldb);
+
+mma_sync(accFrag, aFrag, bFrag, accFrag);
+}
+}
+
+float* cOffsetPtr = mtrC + cRow * ldc + cCol;
+
+store_matrix_sync(cOffsetPtr, accFrag, ldc, wmma::mem_row_major);
+```
+
+---
+
+参考:
+
+[1] [Tips for Optimizing GPU Performance Using Tensor Cores](https://developer.nvidia.com/blog/optimizing-gpu-performance-tensor-cores/)
+
+[2] [CUDA C++ Programming Guide:7.24. Warp Matrix Functions](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions)
+
+[3] [NVIDIA TESLA V100 GPU ARCHITECTURE](https://images.nvidia.cn/content/volta-architecture/pdf/volta-architecture-whitepaper.pdf)
+
+[4] [PTX ISA 8.5: 9.7.15.4.1. Matrix Fragments for mma.m8n8k4 with .f16 floating point type](https://docs.nvidia.com/cuda/parallel-thread-execution/#matrix-fragments-for-mma-m8n8k4-with-f16-floating-point-type)。">
+<meta property="og:title" content="CUDA 编程使用 Tensor core 详解">
+<meta property="og:description" content="![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)
+
+# CUDA 编程使用 Tensor core 详解
+
+前言
+
+最近在学习怎么使用 Tensor core.
+主要通过 [NVIDIA 官方文档](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions)和
+[cuda-samples](https://github.com/NVIDIA/cuda-samples) 项目中关于 Tensor core 部分的实际代码示例结合其他文章做出总结,
+再结合使用过程中的一些问题写出这篇文章.
+本文首先解释了什么是 Tensor core 再详细说明在实际编程中如何使用 Tensor core.
+
+文章链接 : [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)
+
+---
+
+## 什么是 Tensor core
+
+在 2017 GPU 技术大会(GTC 2017)上, NVIDIA推出了新一代 Volta 架构,
+以及使用新架构的第一款设备 : 适用于深度学习任务的加速卡 Tesla V100.
+Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).
+Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.
+**Tensor core 主要设计用于加速矩阵计算.**
+
+![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla%20V100单个SM架构图.png)
+<p style='text-align:center'>Tesla V100单个SM架构图</p>
+
+**Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.
+将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.**
+
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20Core%20执行4x4x4矩阵相乘累加.png)
+<p style='text-align:center'>Tensor Core 执行4x4x4矩阵相乘累加</p>
+
+每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 **D = A * B + C**, 其中 **A, B, C, D 是 4×4 矩阵**.
+A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单精度(FP32)的矩阵.
+
+> 混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.
+
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20中的混合精度相乘和累加操作.png)
+<p style='text-align:center'>Tensor core 中的混合精度相乘和累积操作</p>
+
+---
+
+## 为什么使用 Tensor core
+
+Tesla V100 单个 SM 架构图中可以看到, 单个 SM 中分为4个 sub core.
+一个 sub core 中的 CUDA core 单个时钟周期可以执行 16 次 FFMA 操作.
+**一个 sub core 中有两个 Tensor core, 单个 Tensor core 每个时钟可以执行 64 次 FFMA 混合精度运算(FP16 乘法与 FP32
+累加). **
+比起 CUDA core, 使用 Tensor core 的吞吐量提升了8倍.
+
+> FFMA(Fused Floating-Point Multiply-Add)是一种在 GPU 上执行的高效数学运算,
+> 将 32 位浮点数的乘法和加法两个操作融合在一个指令中完成, 从而提高性能和减少计算延迟.
+
+Tesla V100 在一个 SM 单元中有8个 TensorCore, 每个时钟可执行共计 1024 次浮点运算.  
+使用 Volta 架构的 V100 GPU 相比于上一代 Pascal 架构的 P100 GPU 的吞吐量一共提升了 12 倍.
+
+![Pascal架构和Volta架构矩阵运算速度对比](/img/CUDA_编程使用_Tensor_core_详解/Pascal架构和Volta架构矩阵运算速度对比.gif)
+<p style='text-align:center'>Pascal架构和Volta架构矩阵运算速度对比</p>
+
+CUDA core 中, 每次进行一个点和一行进行相乘依次得到新的矩阵, 而 Tensor core 中是一个矩阵和另一个矩阵直接相乘得到新的矩阵.
+
+> 运算从依次从一行和一列进行相乘得到结果,变化到一个矩阵与另一个矩阵直接相乘得到结果, 则编程思路也要进行变化.
+> 下一节说明使用 Tensor core 的思路.
+
+---
+
+## 分块(tilling)
+
+矩阵乘法一般使用分块 (tilling) 技术将大矩阵划分为许多小块 (tile) 分别进行计算,
+通过对小块矩阵进行乘法运算, 降低了算法的时间复杂度, 并能够更好地利用缓存.
+**而每一个结果矩阵的块 (tile) 都是由**
+**两个相乘矩阵 (A, B矩阵) 的块 (tile) 沿着 K 维度 (A矩阵的行, B矩阵的列) 相乘并累加得到的.**
+
+![计算和储存匹配CUDA模型的分层结构](/img/CUDA_编程使用_Tensor_core_详解/计算和储存匹配CUDA模型的分层结构.png)
+<p style='text-align:center'>计算和储存匹配CUDA模型的分层结构</p>
+
+分块技术将 A, B 和 C 矩阵按照相对应的维度 (例如 C 块的维度是 m × n, A 块是 m × k, B 块是 k × n) 分为无数个小的矩阵块.
+一个 m × n 的 C 块的结果由对应 m × k 的 A 块 和 k × n 的 B 块沿着 K 维相乘并累加得到.
+
+如下图所示, 要计算一个 32 × 8 的 C 块, 它在结果矩阵 C 的位置是最左上角, 也就是由1~32行和1~8列组成的矩阵块.
+设 k = 16, 则首先计算A矩阵的第0~31行和第0~15列组成的A块与B矩阵的第0~15行和第0~7列组成的B块相乘得到中间结果矩阵acc(
+accumulator-1)块,
+再计算由第0~31行和第16~31列组成的A块与第16~31行和第0~7列组成的B块相乘得到的新的acc(accumulator-2)块与上一次的acc(
+accumulator-1)块做矩阵加法.
+沿K维循环迭代进行, 最终遍历计算 A 矩阵第0~31行的所有数据和 B 矩阵第0~7列的所有数据得到最终结果矩阵 C 块.
+
+![分块矩阵相乘累加示例.png](/img/CUDA_编程使用_Tensor_core_详解/分块矩阵相乘累加示例.png)
+<p style='text-align:center'>分块矩阵相乘累加示例</p>
+
+**使用分块技术来计算矩阵乘法最主要的操作就是两个矩阵块相乘, 将结果矩阵块累加到上一次的结果矩阵块.
+Tensor core 就是用于计算矩阵相乘和累加的操作.**
+
+将矩阵按照 Tensor core 支持的矩阵维度来分块, 随后将 A 块 和 B 块利用 Tensor core 沿着 K 维相乘累加得到结果矩阵 C 块.
+再进行同样的操作来计算下一个 C 块, 最后所有的 C 块结合起来得到最终的结果矩阵.
+
+> 也可以通过使用 cuBLAS 和 cuDNN 这两个 CUDA 库来间接使用 Tensor Cores.
+> cuBLAS 利用 Tensor Cores 加速密集矩阵乘法(GEMM)计算;
+> cuDNN 则利用 Tensor Cores 加速卷积和循环神经网络(RNNs)的计算.
+
+---
+
+## WMMA API
+
+CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便开发者可以使用 GPU 上的 Tensor Core.
+称为WMMA(Warp-level Matrix Multiply and Accumulate)API.
+通过 WMMA API, 可以将 D = A × B + C 运算使用 warp 级别进行操作,
+其中的A、B、C、D都是更大矩阵的块(tile). 也就是可以使用一个 warp (32个线程) 来计算一个结果矩阵块.
+
+**实际工作中, 一个warp中的每个线程都只计算结果矩阵块的8个数据(16×16/32).**
+
+Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.
+
+![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20WMMA%20API%20目前支持的格式和矩阵维度.png)
+<p style='text-align:center'>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
+
+> 这里只列出部分常用格式.
+> Tensor core 还支持特殊格式, 详细可在官网查看 :
+> [CUDA C++ Programming Guide 7.24.6. Element Types and Matrix Sizes](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#element-types-and-matrix-sizes)
+
+要通过 WMMA API 来使用 Tensor core 只需要简单4个步骤 :
+
+- 首先创建用于储存矩阵块的 fragment 类
+- 将矩阵块读取到 fragment 类中
+- 进行矩阵乘法累加计算
+- 最后将计算结果写回到结果矩阵
+
+> 调用前需要检查 GPU 是否带有 Tensor core, 并且在构建项目时设置对应的 GPU 架构.
+> 构建方式可以查看另一篇文章 : [用 CMake 构建跨平台 CUDA C/C++ 项目](https://zhuanlan.zhihu.com/p/701581020)
+
+WMMA API的所有函数和类型都在头文件 `mma.h` 中的 `namespace::nvcuda::wmma` 命名空间中定义.
+为了简化代码的同时避免命名空间冲突, 保持 `wmma` 的显示, 只使用 `nvcuda` 命名空间.
+
+```C++
+#include <mma.h>
+using namespace nvcuda;
+```
+
+---
+
+### fragment 类
+
+**fragment 是一个重载类, 用于储存矩阵片段(块)的数据.**
+
+```C++
+template<typename Use, int m, int n, int k, typename T, typename Layout=void> class fragment;
+
+// examples
+wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> aFrag;
+wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::col_major> bFrag;
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> cFrag;
+```
+
+- `Use` : 用作第一个乘数的矩阵使用 `matrix_a` , 第二个乘数的矩阵使用 `matrix_b` . 当分别用作累加器C或目标累加器D时使用
+  `accumulator`
+- `m` , `n` , `k` : 表示参与乘法和累积操作的矩阵块的形状, 比如说矩阵A块是m×k, 矩阵B块是k×n, 矩阵C块是m×n
+- `T` : 使用的数据类型. `double` , `float` , `__half` , `__nv_bfloat16` , `char` , `unsigned char`
+- `Layout` : 表示矩阵是以行主序 `row_major` 或列主序 `col_major` 的形式保存在内存中, 当 `Use` 参数使用 `accumulator`
+  时则不需要填写,
+  默认是列主序储存
+
+成员变量 `num_elements` 记录元素总数, 一般为8. 配合成员变量 `x` 可以遍历所有元素. 例如让储存的所有元素乘2 :
+
+```C++
+for (int idx = 0; idx < frag.num_elements; ++idx) {
+    frag.x[idx] *= 2;
+}
+```
+
+官方文档(CUDA C++ Programming Guide)中关于fragment类的描述说 'The mapping of matrix elements into fragment internal
+storage is unspecified and subject to change
+in future architectures.'
+也就是说通过以上方式不能准确知道遍历过程中当前 `idx` 下的 `frag.x[idx]` 在实际矩阵块中的哪个位置.
+
+但是实际可以直接通过将同一个warp中的每个线程(lane)储存的元素全部打印出来对照查看就能知道.
+以下列表是当m,n,k都分别设置为16的情况下每个线程储存原始矩阵的位置.
+
+> Warp是CUDA中最小的执行单元, 它由一组固定数量的线程组成(在NVIDIA的Fermi架构及以后的GPU中, 一个warp包含32个线程).
+> 同一个warp中, 每个线程被称为一个'lane', 术语来自于'车道'的比喻, 就像在高速公路上, 每个车道可以独立行驶一辆车.
+> 每个lane可以看作是一个独立的执行路径, 它们共享warp的执行状态, 但各自有自己的寄存器和执行流.
+
+![m16n16k16情况下,部分线程fragment类中储存的原矩阵块C的元素位置.png](/img/CUDA_编程使用_Tensor_core_详解/m16n16k16情况下,部分线程fragment类中储存的原矩阵块C的元素位置.png)
+<p style='text-align:center'>m16n16k16情况下, 部分线程fragment类中储存的原矩阵块C的元素位置. 行标为laneId, 列标为fragment类的Index. 数据为[row,col]</p>
+
+通过上图可以发现一些规律:
+
+1. 从每个线程储存的行数上看, 线程的每两个Index储存相同的行元素, 并且Index为0~1和4~5储存了相同的行元素, 2~3和6~
+   7储存了相同的行元素. 也就是每个线程只储存了两个行元素, 并且相差为8, 0~1和4~5是小一些的行数.
+2. 从每个线程储存的列数上看, 线程的每两个Index储存连续的两列元素, 并且Index为0和2储存了相同的列元素, 1和3储存了相同列元素.
+   也就是每个线程储存了4个列元素, 并且每两个列元素相差为8, 前4个Index储存了小一些的列数.
+3. 从每个线程储存的列数与Index对比, 发现Index为偶数时, 储存的列数也为偶数, Index为奇数时, 储存的列数也为奇数.
+4. 原矩阵同一行的数据由每连续的4个线程储存.
+5. 0到15行数据中, 行数以8为分界线, T0储存第0行和第8行的元素, 之后根据规律③增加.
+6. 0到15列数据中, 列数以8为分界线, 每个线程的每两个Index储存连续的2列的元素. 根据规律③的4个线程为一组, 组内第0号线程,
+   储存0,1,8,9列元素, 第1号线程储存2,3,10,11列元素, 以此类推.
+
+例如要找到原矩阵块中第1行第12列的是在哪个线程储存, 储存的Index是多少?
+可以先**通过行数, 根据第④和第⑤条规律计算出从哪个线程ID开始储存**.
+
+```C++
+const int startLane = localRow % 8 * 4;
+```
+
+从以上公式算出[1,12]是由第4号开始的线程储存, 也就是4~7线程储存了第1行元素.
+
+再**通过列数, 根据第④和第⑥条规律计算出在连续四个线程中的哪个线程储存了该元素**. 最终得到线程(lane)ID.
+
+```C++
+laneId = startLane + localCol % 8 / 2;
+```
+
+从以上公式算出[1,12]是由第6号线程储存. 知道了线程Id之后还需要知道属于fragment类中的哪个Index储存.
+
+最后**根据第①, ②和③条规律计算出元素所在fragment类中的Index**.
+
+```C++
+const int isBigRow = localRow / 8;
+const int isBigCol = localCol / 8;
+index = isBigCol * 4 + isBigRow * 2 + localCol % 2;
+```
+
+最终得到第1行第12列的数据由fragment类的Index为4的第6号线程储存.
+
+以上规律虽然说可能会在未来的架构中改变, 但是在短时间内大概率不会进行更改. 并且未来更改了也可以根据这样的方式找到计算的方法.
+
+---
+
+### 加载矩阵数据
+
+`load_matrix_sync()` 函数用于从内存加载矩阵的片段到 fragment 类中. 并且**开始前会进行线程同步(sync)操作.**
+
+```C++
+void load_matrix_sync(fragment<...> &a, const T* mptr, unsigned ldm);
+void load_matrix_sync(fragment<...> &a, const T* mptr, unsigned ldm, layout_t layout);
+```
+
+- `a` : 函数输出. 储存矩阵片段的 fragment 类
+- `mptr` : 必须是一个 256 位对齐的指针, 指向内存中矩阵第一个要加载的元素
+- `ldm` : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量
+- `layout` : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 : `mem_row_major` 或列主序 : `mem_col_major`
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.
+
+如果**要加载的块不满足对应的矩阵维度, 结果将出错**. 也就是说要保证输入矩阵块的大小和 fragment 类的参数相匹配.
+例如指定的fragment类的m,n,k分别为32,8,16, 那么加载的矩阵块A的大小必须是32×16, 矩阵块B的大小必须是16×8.
+
+> 特别是在进行K迭代时, 要注意是否超过了原始矩阵的大小.
+
+---
+
+### 矩阵计算
+
+`mma_sync()` 函数进行矩阵乘法累加计算. 会在**开始前进行线程同步(sync)操作.**
+
+```C++
+void mma_sync(fragment<...> &d, const fragment<...> &a, const fragment<...> &b, const fragment<...> &c, bool satf=false);
+```
+
+- d , a , b , c : 表示对应的矩阵片段
+- satf :  饱和有限值模式, 也就是安全模式. 默认为 `false` , 如果设置为 `true` , 则目标累加器有以下额外的数值属性 :
+    - 如果一个元素的计算结果为正无穷, 则对应的累加器将会包含 `+MAX_NORM`
+    - 如果一个元素的计算结果为负无穷, 则对应的累加器将会包含 `-MAX_NORM`
+    - 如果一个元素的计算结果为 NaN, 则对应的累加器将包含 `+0`
+
+> 矩阵之间片段的形状必须匹配, 也就是参数 `m` , `n` , `k` 需要相匹配.
+
+将 A 块和 B 块相乘, 结果累加到 acc 块中 :
+
+```C++
+mma_sync(accFrag, aFrag, bFrag, accFrag);
+```
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.
+
+---
+
+### 存储矩阵数据
+
+`store_matrix_sync()` 函数与 `load_matrix_sync()` 函数相反, 是将矩阵片段存储回内存中. 也会在开始前进行线程同步(sync)操作.
+
+```C++
+void store_matrix_sync(T* mptr, const fragment<...> &a, unsigned ldm, layout_t layout);
+```
+
+- `mptr` : 必须是一个256位对齐的指针, 指向数据储存的第一个位置
+- `a` : 源矩阵片段 fragment 类
+- `ldm` : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量
+- `layout` : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 `mem_row_major` 或列主序 `mem_col_major`
+
+> 注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用
+
+---
+
+### 填充矩阵数据
+
+`fill_fragment()` 是用于对矩阵片段 `fragment<>` 类进行操作, 可以用常量值 `v` 来填充整个矩阵片段.
+
+```C++
+void fill_fragment(fragment<...> &a, const T& v);
+```
+
+一般用于对创建的 fragment 类进行初始化, 例如将记录中间结果的 acc 块先初始化为 0 :
+
+```C++
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> accFrag;
+wmma::fill_fragment(accFrag, 0.0f);
+```
+
+---
+
+## cuBLAS 库使用 Tensor core
+
+使用 cuBLAS 库先要创建...........
+目前只有 GEMM 操作支持使用 Tensor core, 要使用 Tensor core 需要设置数学模式为 : `CUBLAS_TENSOR_OP_MATH` .
+
+```C++
+cublasSetMathMode(cublasHandle, CUBLAS_TENSOR_OP_MATH);
+```
+
+A, B 和 C 矩阵都默认为列主序储存
+
+参数:
+
+- `CUBLAS_OP_N` : 非转置操作
+- `CUBLAS_OP_T` : 转置操作
+- `CUBLAS_OP_C` : 共轭转置操作
+
+> 共轭转置 : 要理解共轭转置首先要了解什么是实数什么是虚数.
+> 实数是可以在数轴上面表示的数, 也就是平常接触到的数, 可以进行标准的加减乘除操作.
+> 复数是由实数和虚数部分组成的数, 基本形式为 a + b * i ,
+> 其中 a 是实部(可以是任何实数), b 是虚部(可以是任何实数), i 是虚数单位(满足 i² = -1 ).
+> 实数是复数的一个子集(也就是 b = 0 时). 复数在实数系统中无法表示,
+> 复数的引入扩展了数学的边界, 使得能够解决一些在实数范围内无法解决的问题.
+> 而共轭转置就是将一个复数 a + b * i 变为 a - b * i
+
+---
+
+## 示例
+
+下面是使用WMMA API计算稠密矩阵-稠密矩阵乘法的示例. 其中矩阵A和矩阵B的类型为half, 结果矩阵C的类型为float.
+矩阵块维度m,n和k都是16. 所有矩阵都以行主序储存.
+
+```C++
+// According to the planning of cuda thread blocks, 
+// calculate the row id and column id of the resulting matrix block C to be computed by the current warp.
+int cRow, cCol;
+
+wmma::fragment<wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> aFrag;
+wmma::fragment<wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major> bFrag;
+
+wmma::fragment<wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, float> accFrag;
+fill_fragment(accFrag, 0.0f);
+
+// All matrices are stored in row-order
+const int lda = K;
+const int ldb = N;
+const int ldc = N;
+
+for (int kIter = 0; kIter < K; kIter += WMMA_K) {
+const int aRow = cRow;
+const int aCol = kIter;
+
+const int bRow = kIter;
+const int bCol = cCol;
+
+// bounds checking
+if (aRow < M && aCol < K && bRow < K && bCol < N) {
+const half* aOffsetPtr = mtrA + aRow * lda + aCol;
+const half* bOffsetPtr = mtrB + bRow * ldb + bCol;
+
+load_matrix_sync(aFrag, aOffsetPtr, lda);
+load_matrix_sync(bFrag, bOffsetPtr, ldb);
+
+mma_sync(accFrag, aFrag, bFrag, accFrag);
+}
+}
+
+float* cOffsetPtr = mtrC + cRow * ldc + cCol;
+
+store_matrix_sync(cOffsetPtr, accFrag, ldc, wmma::mem_row_major);
+```
+
+---
+
+参考:
+
+[1] [Tips for Optimizing GPU Performance Using Tensor Cores](https://developer.nvidia.com/blog/optimizing-gpu-performance-tensor-cores/)
+
+[2] [CUDA C++ Programming Guide:7.24. Warp Matrix Functions](https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions)
+
+[3] [NVIDIA TESLA V100 GPU ARCHITECTURE](https://images.nvidia.cn/content/volta-architecture/pdf/volta-architecture-whitepaper.pdf)
+
+[4] [PTX ISA 8.5: 9.7.15.4.1. Matrix Fragments for mma.m8n8k4 with .f16 floating point type](https://docs.nvidia.com/cuda/parallel-thread-execution/#matrix-fragments-for-mma-m8n8k4-with-f16-floating-point-type)。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://CX9898.github.io/post/CUDA%20-bian-cheng-shi-yong-%20Tensor%20core%20-xiang-jie.html">
+<meta property="og:image" content="https://cx9898.github.io/img/CX.jpg">
+<title>CUDA 编程使用 Tensor core 详解</title>
+<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+.copy-feedback {
+    display: none;
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    color: var(--color-fg-on-emphasis);
+    background-color: var(--color-fg-muted);
+    border-radius: 3px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">CUDA 编程使用 Tensor core 详解</h1>
+<div class="title-right">
+    <a href="https://CX9898.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/CX9898/CX9898.github.io/issues/6" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E5%B0%81%E9%9D%A2.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E5%B0%81%E9%9D%A2.png" alt="Tensor core" style="max-width: 100%;"></a></p>
+<h1>CUDA 编程使用 Tensor core 详解</h1>
+<p>前言</p>
+<p>最近在学习怎么使用 Tensor core.<br>
+主要通过 <a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions" rel="nofollow">NVIDIA 官方文档</a>和<br>
+<a href="https://github.com/NVIDIA/cuda-samples">cuda-samples</a> 项目中关于 Tensor core 部分的实际代码示例结合其他文章做出总结,<br>
+再结合使用过程中的一些问题写出这篇文章.<br>
+本文首先解释了什么是 Tensor core 再详细说明在实际编程中如何使用 Tensor core.</p>
+<p>文章链接 : <a href="https://zhuanlan.zhihu.com/p/706494789" rel="nofollow">CUDA 编程使用 Tensor core 详解</a></p>
+<hr>
+<h2>什么是 Tensor core</h2>
+<p>在 2017 GPU 技术大会(GTC 2017)上, NVIDIA推出了新一代 Volta 架构,<br>
+以及使用新架构的第一款设备 : 适用于深度学习任务的加速卡 Tesla V100.<br>
+Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).<br>
+Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.<br>
+<strong>Tensor core 主要设计用于加速矩阵计算.</strong></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla%20V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla%20V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png" alt="Tesla V100单个SM架构图" style="max-width: 100%;"></a></p>
+<p>Tesla V100单个SM架构图</p>
+<p><strong>Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.<br>
+将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.</strong></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20Core%20%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20Core%20%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
+<p>Tensor Core 执行4x4x4矩阵相乘累加</p>
+<p>每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 <strong>D = A * B + C</strong>, 其中 <strong>A, B, C, D 是 4×4 矩阵</strong>.<br>
+A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单精度(FP32)的矩阵.</p>
+<blockquote>
+<p>混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.</p>
+</blockquote>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
+<p>Tensor core 中的混合精度相乘和累积操作</p>
+<hr>
+<h2>为什么使用 Tensor core</h2>
+<p>Tesla V100 单个 SM 架构图中可以看到, 单个 SM 中分为4个 sub core.<br>
+一个 sub core 中的 CUDA core 单个时钟周期可以执行 16 次 FFMA 操作.<br>
+**一个 sub core 中有两个 Tensor core, 单个 Tensor core 每个时钟可以执行 64 次 FFMA 混合精度运算(FP16 乘法与 FP32<br>
+累加). **<br>
+比起 CUDA core, 使用 Tensor core 的吞吐量提升了8倍.</p>
+<blockquote>
+<p>FFMA(Fused Floating-Point Multiply-Add)是一种在 GPU 上执行的高效数学运算,<br>
+将 32 位浮点数的乘法和加法两个操作融合在一个指令中完成, 从而提高性能和减少计算延迟.</p>
+</blockquote>
+<p>Tesla V100 在一个 SM 单元中有8个 TensorCore, 每个时钟可执行共计 1024 次浮点运算.<br>
+使用 Volta 架构的 V100 GPU 相比于上一代 Pascal 架构的 P100 GPU 的吞吐量一共提升了 12 倍.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Pascal%E6%9E%B6%E6%9E%84%E5%92%8CVolta%E6%9E%B6%E6%9E%84%E7%9F%A9%E9%98%B5%E8%BF%90%E7%AE%97%E9%80%9F%E5%BA%A6%E5%AF%B9%E6%AF%94.gif"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Pascal%E6%9E%B6%E6%9E%84%E5%92%8CVolta%E6%9E%B6%E6%9E%84%E7%9F%A9%E9%98%B5%E8%BF%90%E7%AE%97%E9%80%9F%E5%BA%A6%E5%AF%B9%E6%AF%94.gif" alt="Pascal架构和Volta架构矩阵运算速度对比" style="max-width: 100%;"></a></p>
+<p>Pascal架构和Volta架构矩阵运算速度对比</p>
+<p>CUDA core 中, 每次进行一个点和一行进行相乘依次得到新的矩阵, 而 Tensor core 中是一个矩阵和另一个矩阵直接相乘得到新的矩阵.</p>
+<blockquote>
+<p>运算从依次从一行和一列进行相乘得到结果,变化到一个矩阵与另一个矩阵直接相乘得到结果, 则编程思路也要进行变化.<br>
+下一节说明使用 Tensor core 的思路.</p>
+</blockquote>
+<hr>
+<h2>分块(tilling)</h2>
+<p>矩阵乘法一般使用分块 (tilling) 技术将大矩阵划分为许多小块 (tile) 分别进行计算,<br>
+通过对小块矩阵进行乘法运算, 降低了算法的时间复杂度, 并能够更好地利用缓存.<br>
+<strong>而每一个结果矩阵的块 (tile) 都是由</strong><br>
+<strong>两个相乘矩阵 (A, B矩阵) 的块 (tile) 沿着 K 维度 (A矩阵的行, B矩阵的列) 相乘并累加得到的.</strong></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E8%AE%A1%E7%AE%97%E5%92%8C%E5%82%A8%E5%AD%98%E5%8C%B9%E9%85%8DCUDA%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%88%86%E5%B1%82%E7%BB%93%E6%9E%84.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E8%AE%A1%E7%AE%97%E5%92%8C%E5%82%A8%E5%AD%98%E5%8C%B9%E9%85%8DCUDA%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%88%86%E5%B1%82%E7%BB%93%E6%9E%84.png" alt="计算和储存匹配CUDA模型的分层结构" style="max-width: 100%;"></a></p>
+<p>计算和储存匹配CUDA模型的分层结构</p>
+<p>分块技术将 A, B 和 C 矩阵按照相对应的维度 (例如 C 块的维度是 m × n, A 块是 m × k, B 块是 k × n) 分为无数个小的矩阵块.<br>
+一个 m × n 的 C 块的结果由对应 m × k 的 A 块 和 k × n 的 B 块沿着 K 维相乘并累加得到.</p>
+<p>如下图所示, 要计算一个 32 × 8 的 C 块, 它在结果矩阵 C 的位置是最左上角, 也就是由1<del>32行和1</del>8列组成的矩阵块.<br>
+设 k = 16, 则首先计算A矩阵的第0<del>31行和第0</del>15列组成的A块与B矩阵的第0<del>15行和第0</del>7列组成的B块相乘得到中间结果矩阵acc(<br>
+accumulator-1)块,<br>
+再计算由第0<del>31行和第16</del>31列组成的A块与第16<del>31行和第0</del>7列组成的B块相乘得到的新的acc(accumulator-2)块与上一次的acc(<br>
+accumulator-1)块做矩阵加法.<br>
+沿K维循环迭代进行, 最终遍历计算 A 矩阵第0<del>31行的所有数据和 B 矩阵第0</del>7列的所有数据得到最终结果矩阵 C 块.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E5%88%86%E5%9D%97%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0%E7%A4%BA%E4%BE%8B.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/%E5%88%86%E5%9D%97%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0%E7%A4%BA%E4%BE%8B.png" alt="分块矩阵相乘累加示例.png" style="max-width: 100%;"></a></p>
+<p>分块矩阵相乘累加示例</p>
+<p><strong>使用分块技术来计算矩阵乘法最主要的操作就是两个矩阵块相乘, 将结果矩阵块累加到上一次的结果矩阵块.<br>
+Tensor core 就是用于计算矩阵相乘和累加的操作.</strong></p>
+<p>将矩阵按照 Tensor core 支持的矩阵维度来分块, 随后将 A 块 和 B 块利用 Tensor core 沿着 K 维相乘累加得到结果矩阵 C 块.<br>
+再进行同样的操作来计算下一个 C 块, 最后所有的 C 块结合起来得到最终的结果矩阵.</p>
+<blockquote>
+<p>也可以通过使用 cuBLAS 和 cuDNN 这两个 CUDA 库来间接使用 Tensor Cores.<br>
+cuBLAS 利用 Tensor Cores 加速密集矩阵乘法(GEMM)计算;<br>
+cuDNN 则利用 Tensor Cores 加速卷积和循环神经网络(RNNs)的计算.</p>
+</blockquote>
+<hr>
+<h2>WMMA API</h2>
+<p>CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便开发者可以使用 GPU 上的 Tensor Core.<br>
+称为WMMA(Warp-level Matrix Multiply and Accumulate)API.<br>
+通过 WMMA API, 可以将 D = A × B + C 运算使用 warp 级别进行操作,<br>
+其中的A、B、C、D都是更大矩阵的块(tile). 也就是可以使用一个 warp (32个线程) 来计算一个结果矩阵块.</p>
+<p><strong>实际工作中, 一个warp中的每个线程都只计算结果矩阵块的8个数据(16×16/32).</strong></p>
+<p>Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20WMMA%20API%20%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20WMMA%20API%20%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png" alt="Tensor core WMMA API 目前支持的格式和矩阵维度" style="max-width: 100%;"></a></p>
+<p>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
+<blockquote>
+<p>这里只列出部分常用格式.<br>
+Tensor core 还支持特殊格式, 详细可在官网查看 :<br>
+<a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#element-types-and-matrix-sizes" rel="nofollow">CUDA C++ Programming Guide 7.24.6. Element Types and Matrix Sizes</a></p>
+</blockquote>
+<p>要通过 WMMA API 来使用 Tensor core 只需要简单4个步骤 :</p>
+<ul>
+<li>首先创建用于储存矩阵块的 fragment 类</li>
+<li>将矩阵块读取到 fragment 类中</li>
+<li>进行矩阵乘法累加计算</li>
+<li>最后将计算结果写回到结果矩阵</li>
+</ul>
+<blockquote>
+<p>调用前需要检查 GPU 是否带有 Tensor core, 并且在构建项目时设置对应的 GPU 架构.<br>
+构建方式可以查看另一篇文章 : <a href="https://zhuanlan.zhihu.com/p/701581020" rel="nofollow">用 CMake 构建跨平台 CUDA C/C++ 项目</a></p>
+</blockquote>
+<p>WMMA API的所有函数和类型都在头文件 <code class="notranslate">mma.h</code> 中的 <code class="notranslate">namespace::nvcuda::wmma</code> 命名空间中定义.<br>
+为了简化代码的同时避免命名空间冲突, 保持 <code class="notranslate">wmma</code> 的显示, 只使用 <code class="notranslate">nvcuda</code> 命名空间.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate">#<span class="pl-k">include</span> <span class="pl-s"><span class="pl-pds">&lt;</span>mma.h<span class="pl-pds">&gt;</span></span>
+<span class="pl-k">using</span> <span class="pl-k">namespace</span> <span class="pl-en">nvcuda</span><span class="pl-k">;</span></pre></div>
+<hr>
+<h3>fragment 类</h3>
+<p><strong>fragment 是一个重载类, 用于储存矩阵片段(块)的数据.</strong></p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> Use, <span class="pl-k">int</span> m, <span class="pl-k">int</span> n, <span class="pl-k">int</span> k, <span class="pl-k">typename</span> T, <span class="pl-k">typename</span> Layout=<span class="pl-k">void</span>&gt; <span class="pl-k">class</span> <span class="pl-en">fragment</span>;
+
+<span class="pl-c"><span class="pl-c">//</span> examples</span>
+wmma::fragment&lt;wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; aFrag;
+wmma::fragment&lt;wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::col_major&gt; bFrag;
+wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; cFrag;</pre></div>
+<ul>
+<li><code class="notranslate">Use</code> : 用作第一个乘数的矩阵使用 <code class="notranslate">matrix_a</code> , 第二个乘数的矩阵使用 <code class="notranslate">matrix_b</code> . 当分别用作累加器C或目标累加器D时使用<br>
+<code class="notranslate">accumulator</code></li>
+<li><code class="notranslate">m</code> , <code class="notranslate">n</code> , <code class="notranslate">k</code> : 表示参与乘法和累积操作的矩阵块的形状, 比如说矩阵A块是m×k, 矩阵B块是k×n, 矩阵C块是m×n</li>
+<li><code class="notranslate">T</code> : 使用的数据类型. <code class="notranslate">double</code> , <code class="notranslate">float</code> , <code class="notranslate">__half</code> , <code class="notranslate">__nv_bfloat16</code> , <code class="notranslate">char</code> , <code class="notranslate">unsigned char</code></li>
+<li><code class="notranslate">Layout</code> : 表示矩阵是以行主序 <code class="notranslate">row_major</code> 或列主序 <code class="notranslate">col_major</code> 的形式保存在内存中, 当 <code class="notranslate">Use</code> 参数使用 <code class="notranslate">accumulator</code><br>
+时则不需要填写,<br>
+默认是列主序储存</li>
+</ul>
+<p>成员变量 <code class="notranslate">num_elements</code> 记录元素总数, 一般为8. 配合成员变量 <code class="notranslate">x</code> 可以遍历所有元素. 例如让储存的所有元素乘2 :</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">for</span> (<span class="pl-k">int</span> idx = <span class="pl-c1">0</span>; idx &lt; frag.num_elements; ++idx) {
+    frag.<span class="pl-smi">x</span>[idx] *= <span class="pl-c1">2</span>;
+}</pre></div>
+<p>官方文档(CUDA C++ Programming Guide)中关于fragment类的描述说 "The mapping of matrix elements into fragment internal<br>
+storage is unspecified and subject to change<br>
+in future architectures."<br>
+也就是说通过以上方式不能准确知道遍历过程中当前 <code class="notranslate">idx</code> 下的 <code class="notranslate">frag.x[idx]</code> 在实际矩阵块中的哪个位置.</p>
+<p>但是实际可以直接通过将同一个warp中的每个线程(lane)储存的元素全部打印出来对照查看就能知道.<br>
+以下列表是当m,n,k都分别设置为16的情况下每个线程储存原始矩阵的位置.</p>
+<blockquote>
+<p>Warp是CUDA中最小的执行单元, 它由一组固定数量的线程组成(在NVIDIA的Fermi架构及以后的GPU中, 一个warp包含32个线程).<br>
+同一个warp中, 每个线程被称为一个"lane", 术语来自于"车道"的比喻, 就像在高速公路上, 每个车道可以独立行驶一辆车.<br>
+每个lane可以看作是一个独立的执行路径, 它们共享warp的执行状态, 但各自有自己的寄存器和执行流.</p>
+</blockquote>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/m16n16k16%E6%83%85%E5%86%B5%E4%B8%8B,%E9%83%A8%E5%88%86%E7%BA%BF%E7%A8%8Bfragment%E7%B1%BB%E4%B8%AD%E5%82%A8%E5%AD%98%E7%9A%84%E5%8E%9F%E7%9F%A9%E9%98%B5%E5%9D%97C%E7%9A%84%E5%85%83%E7%B4%A0%E4%BD%8D%E7%BD%AE.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/m16n16k16%E6%83%85%E5%86%B5%E4%B8%8B,%E9%83%A8%E5%88%86%E7%BA%BF%E7%A8%8Bfragment%E7%B1%BB%E4%B8%AD%E5%82%A8%E5%AD%98%E7%9A%84%E5%8E%9F%E7%9F%A9%E9%98%B5%E5%9D%97C%E7%9A%84%E5%85%83%E7%B4%A0%E4%BD%8D%E7%BD%AE.png" alt="m16n16k16情况下,部分线程fragment类中储存的原矩阵块C的元素位置.png" style="max-width: 100%;"></a></p>
+<p>m16n16k16情况下, 部分线程fragment类中储存的原矩阵块C的元素位置. 行标为laneId, 列标为fragment类的Index. 数据为[row,col]</p>
+<p>通过上图可以发现一些规律:</p>
+<ol>
+<li>从每个线程储存的行数上看, 线程的每两个Index储存相同的行元素, 并且Index为0<del>1和4</del>5储存了相同的行元素, 2<del>3和6</del><br>
+7储存了相同的行元素. 也就是每个线程只储存了两个行元素, 并且相差为8, 0<del>1和4</del>5是小一些的行数.</li>
+<li>从每个线程储存的列数上看, 线程的每两个Index储存连续的两列元素, 并且Index为0和2储存了相同的列元素, 1和3储存了相同列元素.<br>
+也就是每个线程储存了4个列元素, 并且每两个列元素相差为8, 前4个Index储存了小一些的列数.</li>
+<li>从每个线程储存的列数与Index对比, 发现Index为偶数时, 储存的列数也为偶数, Index为奇数时, 储存的列数也为奇数.</li>
+<li>原矩阵同一行的数据由每连续的4个线程储存.</li>
+<li>0到15行数据中, 行数以8为分界线, T0储存第0行和第8行的元素, 之后根据规律③增加.</li>
+<li>0到15列数据中, 列数以8为分界线, 每个线程的每两个Index储存连续的2列的元素. 根据规律③的4个线程为一组, 组内第0号线程,<br>
+储存0,1,8,9列元素, 第1号线程储存2,3,10,11列元素, 以此类推.</li>
+</ol>
+<p>例如要找到原矩阵块中第1行第12列的是在哪个线程储存, 储存的Index是多少?<br>
+可以先<strong>通过行数, 根据第④和第⑤条规律计算出从哪个线程ID开始储存</strong>.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">const</span> <span class="pl-k">int</span> startLane = localRow % <span class="pl-c1">8</span> * <span class="pl-c1">4</span>;</pre></div>
+<p>从以上公式算出[1,12]是由第4号开始的线程储存, 也就是4~7线程储存了第1行元素.</p>
+<p>再<strong>通过列数, 根据第④和第⑥条规律计算出在连续四个线程中的哪个线程储存了该元素</strong>. 最终得到线程(lane)ID.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate">laneId = startLane + localCol % <span class="pl-c1">8</span> / <span class="pl-c1">2</span>;</pre></div>
+<p>从以上公式算出[1,12]是由第6号线程储存. 知道了线程Id之后还需要知道属于fragment类中的哪个Index储存.</p>
+<p>最后<strong>根据第①, ②和③条规律计算出元素所在fragment类中的Index</strong>.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">const</span> <span class="pl-k">int</span> isBigRow = localRow / <span class="pl-c1">8</span>;
+<span class="pl-k">const</span> <span class="pl-k">int</span> isBigCol = localCol / <span class="pl-c1">8</span>;
+index = isBigCol * <span class="pl-c1">4</span> + isBigRow * <span class="pl-c1">2</span> + localCol % <span class="pl-c1">2</span>;</pre></div>
+<p>最终得到第1行第12列的数据由fragment类的Index为4的第6号线程储存.</p>
+<p>以上规律虽然说可能会在未来的架构中改变, 但是在短时间内大概率不会进行更改. 并且未来更改了也可以根据这样的方式找到计算的方法.</p>
+<hr>
+<h3>加载矩阵数据</h3>
+<p><code class="notranslate">load_matrix_sync()</code> 函数用于从内存加载矩阵的片段到 fragment 类中. 并且<strong>开始前会进行线程同步(sync)操作.</strong></p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">void</span> <span class="pl-en">load_matrix_sync</span>(fragment&lt;...&gt; &amp;a, <span class="pl-k">const</span> T* mptr, <span class="pl-k">unsigned</span> ldm);
+<span class="pl-k">void</span> <span class="pl-en">load_matrix_sync</span>(fragment&lt;...&gt; &amp;a, <span class="pl-k">const</span> T* mptr, <span class="pl-k">unsigned</span> ldm, <span class="pl-c1">layout_t</span> layout);</pre></div>
+<ul>
+<li><code class="notranslate">a</code> : 函数输出. 储存矩阵片段的 fragment 类</li>
+<li><code class="notranslate">mptr</code> : 必须是一个 256 位对齐的指针, 指向内存中矩阵第一个要加载的元素</li>
+<li><code class="notranslate">ldm</code> : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量</li>
+<li><code class="notranslate">layout</code> : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 : <code class="notranslate">mem_row_major</code> 或列主序 : <code class="notranslate">mem_col_major</code></li>
+</ul>
+<blockquote>
+<p>注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.</p>
+</blockquote>
+<p>如果<strong>要加载的块不满足对应的矩阵维度, 结果将出错</strong>. 也就是说要保证输入矩阵块的大小和 fragment 类的参数相匹配.<br>
+例如指定的fragment类的m,n,k分别为32,8,16, 那么加载的矩阵块A的大小必须是32×16, 矩阵块B的大小必须是16×8.</p>
+<blockquote>
+<p>特别是在进行K迭代时, 要注意是否超过了原始矩阵的大小.</p>
+</blockquote>
+<hr>
+<h3>矩阵计算</h3>
+<p><code class="notranslate">mma_sync()</code> 函数进行矩阵乘法累加计算. 会在<strong>开始前进行线程同步(sync)操作.</strong></p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">void</span> <span class="pl-en">mma_sync</span>(fragment&lt;...&gt; &amp;d, <span class="pl-k">const</span> fragment&lt;...&gt; &amp;a, <span class="pl-k">const</span> fragment&lt;...&gt; &amp;b, <span class="pl-k">const</span> fragment&lt;...&gt; &amp;c, <span class="pl-k">bool</span> satf=<span class="pl-c1">false</span>);</pre></div>
+<ul>
+<li>d , a , b , c : 表示对应的矩阵片段</li>
+<li>satf :  饱和有限值模式, 也就是安全模式. 默认为 <code class="notranslate">false</code> , 如果设置为 <code class="notranslate">true</code> , 则目标累加器有以下额外的数值属性 :
+<ul>
+<li>如果一个元素的计算结果为正无穷, 则对应的累加器将会包含 <code class="notranslate">+MAX_NORM</code></li>
+<li>如果一个元素的计算结果为负无穷, 则对应的累加器将会包含 <code class="notranslate">-MAX_NORM</code></li>
+<li>如果一个元素的计算结果为 NaN, 则对应的累加器将包含 <code class="notranslate">+0</code></li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>矩阵之间片段的形状必须匹配, 也就是参数 <code class="notranslate">m</code> , <code class="notranslate">n</code> , <code class="notranslate">k</code> 需要相匹配.</p>
+</blockquote>
+<p>将 A 块和 B 块相乘, 结果累加到 acc 块中 :</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-en">mma_sync</span>(accFrag, aFrag, bFrag, accFrag);</pre></div>
+<blockquote>
+<p>注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用.</p>
+</blockquote>
+<hr>
+<h3>存储矩阵数据</h3>
+<p><code class="notranslate">store_matrix_sync()</code> 函数与 <code class="notranslate">load_matrix_sync()</code> 函数相反, 是将矩阵片段存储回内存中. 也会在开始前进行线程同步(sync)操作.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">void</span> <span class="pl-en">store_matrix_sync</span>(T* mptr, <span class="pl-k">const</span> fragment&lt;...&gt; &amp;a, <span class="pl-k">unsigned</span> ldm, <span class="pl-c1">layout_t</span> layout);</pre></div>
+<ul>
+<li><code class="notranslate">mptr</code> : 必须是一个256位对齐的指针, 指向数据储存的第一个位置</li>
+<li><code class="notranslate">a</code> : 源矩阵片段 fragment 类</li>
+<li><code class="notranslate">ldm</code> : 表示元素在连续行(行主序时)或列(列主序时)在内存中的跨度. 也就是每行/列的元素数量</li>
+<li><code class="notranslate">layout</code> : 指定矩阵是以行主序或列主序的形式保存在内存中, 必须指定为行主序 <code class="notranslate">mem_row_major</code> 或列主序 <code class="notranslate">mem_col_major</code></li>
+</ul>
+<blockquote>
+<p>注意 : 因为会进行线程同步操作, 此函数必须由 warp 中的所有线程调用</p>
+</blockquote>
+<hr>
+<h3>填充矩阵数据</h3>
+<p><code class="notranslate">fill_fragment()</code> 是用于对矩阵片段 <code class="notranslate">fragment&lt;&gt;</code> 类进行操作, 可以用常量值 <code class="notranslate">v</code> 来填充整个矩阵片段.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">void</span> <span class="pl-en">fill_fragment</span>(fragment&lt;...&gt; &amp;a, <span class="pl-k">const</span> T&amp; v);</pre></div>
+<p>一般用于对创建的 fragment 类进行初始化, 例如将记录中间结果的 acc 块先初始化为 0 :</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate">wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; accFrag;
+<span class="pl-en">wmma::fill_fragment</span>(accFrag, <span class="pl-c1">0</span>.<span class="pl-c1">0f</span>);</pre></div>
+<hr>
+<h2>cuBLAS 库使用 Tensor core</h2>
+<p>使用 cuBLAS 库先要创建...........<br>
+目前只有 GEMM 操作支持使用 Tensor core, 要使用 Tensor core 需要设置数学模式为 : <code class="notranslate">CUBLAS_TENSOR_OP_MATH</code> .</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-en">cublasSetMathMode</span>(cublasHandle, CUBLAS_TENSOR_OP_MATH);</pre></div>
+<p>A, B 和 C 矩阵都默认为列主序储存</p>
+<p>参数:</p>
+<ul>
+<li><code class="notranslate">CUBLAS_OP_N</code> : 非转置操作</li>
+<li><code class="notranslate">CUBLAS_OP_T</code> : 转置操作</li>
+<li><code class="notranslate">CUBLAS_OP_C</code> : 共轭转置操作</li>
+</ul>
+<blockquote>
+<p>共轭转置 : 要理解共轭转置首先要了解什么是实数什么是虚数.<br>
+实数是可以在数轴上面表示的数, 也就是平常接触到的数, 可以进行标准的加减乘除操作.<br>
+复数是由实数和虚数部分组成的数, 基本形式为 a + b * i ,<br>
+其中 a 是实部(可以是任何实数), b 是虚部(可以是任何实数), i 是虚数单位(满足 i² = -1 ).<br>
+实数是复数的一个子集(也就是 b = 0 时). 复数在实数系统中无法表示,<br>
+复数的引入扩展了数学的边界, 使得能够解决一些在实数范围内无法解决的问题.<br>
+而共轭转置就是将一个复数 a + b * i 变为 a - b * i</p>
+</blockquote>
+<hr>
+<h2>示例</h2>
+<p>下面是使用WMMA API计算稠密矩阵-稠密矩阵乘法的示例. 其中矩阵A和矩阵B的类型为half, 结果矩阵C的类型为float.<br>
+矩阵块维度m,n和k都是16. 所有矩阵都以行主序储存.</p>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-c"><span class="pl-c">//</span> According to the planning of cuda thread blocks, </span>
+<span class="pl-c"><span class="pl-c">//</span> calculate the row id and column id of the resulting matrix block C to be computed by the current warp.</span>
+<span class="pl-k">int</span> cRow, cCol;
+
+wmma::fragment&lt;wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; aFrag;
+wmma::fragment&lt;wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; bFrag;
+
+wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; accFrag;
+<span class="pl-en">fill_fragment</span>(accFrag, <span class="pl-c1">0</span>.<span class="pl-c1">0f</span>);
+
+<span class="pl-c"><span class="pl-c">//</span> All matrices are stored in row-order</span>
+<span class="pl-k">const</span> <span class="pl-k">int</span> lda = K;
+<span class="pl-k">const</span> <span class="pl-k">int</span> ldb = N;
+<span class="pl-k">const</span> <span class="pl-k">int</span> ldc = N;
+
+<span class="pl-k">for</span> (<span class="pl-k">int</span> <span class="pl-c1">kIter</span> = <span class="pl-c1">0</span>; <span class="pl-c1">kIter</span> &lt; K; <span class="pl-c1">kIter</span> += WMMA_K) {
+<span class="pl-k">const</span> <span class="pl-k">int</span> aRow = cRow;
+<span class="pl-k">const</span> <span class="pl-k">int</span> aCol = <span class="pl-c1">kIter</span>;
+
+<span class="pl-k">const</span> <span class="pl-k">int</span> bRow = <span class="pl-c1">kIter</span>;
+<span class="pl-k">const</span> <span class="pl-k">int</span> bCol = cCol;
+
+<span class="pl-c"><span class="pl-c">//</span> bounds checking</span>
+<span class="pl-k">if</span> (aRow &lt; M &amp;&amp; aCol &lt; K &amp;&amp; bRow &lt; K &amp;&amp; bCol &lt; N) {
+<span class="pl-k">const</span> half* aOffsetPtr = mtrA + aRow * lda + aCol;
+<span class="pl-k">const</span> half* bOffsetPtr = mtrB + bRow * ldb + bCol;
+
+<span class="pl-c1">load_matrix_sync</span>(aFrag, aOffsetPtr, lda);
+<span class="pl-c1">load_matrix_sync</span>(bFrag, bOffsetPtr, ldb);
+
+<span class="pl-c1">mma_sync</span>(accFrag, aFrag, bFrag, accFrag);
+}
+}
+
+<span class="pl-k">float</span>* cOffsetPtr = mtrC + cRow * ldc + cCol;
+
+<span class="pl-en">store_matrix_sync</span>(cOffsetPtr, accFrag, ldc, wmma::mem_row_major);</pre></div>
+<hr>
+<p>参考:</p>
+<p>[1] <a href="https://developer.nvidia.com/blog/optimizing-gpu-performance-tensor-cores/" rel="nofollow">Tips for Optimizing GPU Performance Using Tensor Cores</a></p>
+<p>[2] <a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-matrix-functions" rel="nofollow">CUDA C++ Programming Guide:7.24. Warp Matrix Functions</a></p>
+<p>[3] <a href="https://images.nvidia.cn/content/volta-architecture/pdf/volta-architecture-whitepaper.pdf" rel="nofollow">NVIDIA TESLA V100 GPU ARCHITECTURE</a></p>
+<p>[4] <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/#matrix-fragments-for-mma-m8n8k4-with-f16-floating-point-type" rel="nofollow">PTX ISA 8.5: 9.7.15.4.1. Matrix Fragments for mma.m8n8k4 with .f16 floating point type</a></p></div>
+<div style="font-size:small;margin-top:8px;float:right;">❤️ 转载文章请注明出处，谢谢！❤️</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://CX9898.github.io">CX98的博客</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("07/02/2024"!=""){
+    var startSite=new Date("07/02/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z', 'copy': 'M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z', 'check': 'M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","CX9898/CX9898.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const createClipboardHTML = (codeContent, additionalClasses = '') => `
+        <pre class="notranslate"><code class="notranslate">${codeContent}</code></pre>
+        <div class="clipboard-container position-absolute right-0 top-0 ${additionalClasses}">
+            <clipboard-copy class="ClipboardButton btn m-2 p-0" role="button" style="display: inherit;">
+                <svg height="16" width="16" class="octicon octicon-copy m-2"><path d="${IconList["copy"]}"></path></svg>
+                <svg height="16" width="16" class="octicon octicon-check color-fg-success m-2 d-none"><path d="${IconList["check"]}"></path></svg>
+            </clipboard-copy>
+            <div class="copy-feedback">Copied!</div>
+        </div>
+    `;
+
+    const handleCodeElements = (selector = '') => {
+        document.querySelectorAll(selector).forEach(codeElement => {
+            const codeContent = codeElement.innerHTML;
+            const newStructure = document.createElement('div');
+            newStructure.className = 'snippet-clipboard-content position-relative overflow-auto';
+            newStructure.innerHTML = createClipboardHTML(codeContent);
+
+            const parentElement = codeElement.parentElement;
+            if (selector.includes('highlight')) {
+                parentElement.insertBefore(newStructure, codeElement.nextSibling);
+                parentElement.removeChild(codeElement);
+            } else {
+                parentElement.parentElement.replaceChild(newStructure, parentElement);
+            }
+        });
+    };
+
+    handleCodeElements('pre.notranslate > code.notranslate');
+    handleCodeElements('div.highlight > pre.notranslate');
+
+    let currentFeedback = null;
+    document.querySelectorAll('clipboard-copy').forEach(copyButton => {
+        copyButton.addEventListener('click', () => {
+            const codeContent = copyButton.closest('.snippet-clipboard-content').innerText;
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = codeContent;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextArea);
+
+            const copyIcon = copyButton.querySelector('.octicon-copy');
+            const checkIcon = copyButton.querySelector('.octicon-check');
+            const copyFeedback = copyButton.nextElementSibling;
+
+            if (currentFeedback && currentFeedback !== copyFeedback) {currentFeedback.style.display = 'none';}
+            currentFeedback = copyFeedback;
+
+            copyIcon.classList.add('d-none');
+            checkIcon.classList.remove('d-none');
+            copyFeedback.style.display = 'block';
+            copyButton.style.borderColor = 'var(--color-success-fg)';
+
+            setTimeout(() => {
+                copyIcon.classList.remove('d-none');
+                checkIcon.classList.add('d-none');
+                copyFeedback.style.display = 'none';
+                copyButton.style.borderColor = '';
+            }, 2000);
+        });
+    });
+});
+
+</script>
+
+
+</html>
