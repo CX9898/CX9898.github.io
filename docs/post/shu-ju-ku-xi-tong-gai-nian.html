@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://cx9898.github.io/img/CX.jpg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="![img.png](/img/%5B摘要%5D数据库系统概念/封面.png)
+
+# 高级数据库
+
+[Database System Concepts<br>Seventh Edition](https://db-book.com/)
+
+---
+
+## 17章: 交易
+
+概述:
+
+- [交易的概念](#交易的概念)
+- [交易状态](#交易状态)
+- [并发执行](#并发执行)
+- [可串行化](#可串行化)
+- [可恢复性](#可恢复性)
+- [隔离的实施](#隔离的实施)
+- [SQL中的事物定义](#SQL中的事物定义)
+- [可串行化的测试](#可串行化的测试)
+
+### 交易的概念
+
+Transaction Concept
+
+**交易**是程序执行的一个单元, 它访问并且可能更新各种数据项.
+
+为了保证数据的完整性, 数据库系统必须确保:
+
+- 原子性: 要么事务的所有操作都在数据库中得到正确反映, 要么全部操作都不反映
+- 一致性: 孤立地执行一个事务可保持数据库的一致性
+- 隔离性: 尽管多个事务可能并发执行, 但每个事务都必须对其他并发执行的事物一无所知
+- 持久性: 交易成功完成后, 对数据库所做的更改会得以保存, 即便出现系统故障也是如此
+
+### 交易状态
+
+Transaction State
+
+- 活动: 初始状态; 事务在执行期间一直处于此状态
+- 部分提交: 在执行完最后一个语句之后
+- 失败: 在发现正常的执行流程无法继续进行之后
+- 已终止: 在事务已回滚且数据库恢复到事务开始前的状态之后.
+    - 事务终止后有两个选择:
+        - 重新启动交易(只有在没有内部逻辑错误的情况下)
+        - 终止交易
+- 已提交: 在成功完成之后
+
+![交易状态图](/img/%5B摘要%5D数据库系统概念/交易状态图.png)
+
+### 并发执行
+
+Concurrent Executions
+
+系统中允许多个事务同时运行.
+优点在于:
+
+- **处理器和磁盘利用率高**, 带来了更高的交易吞吐量
+- 交易的平均响应时间缩短: 短交易无须等待长交易
+
+并发控制方案(实现隔离的机制)
+
+- 要控制并发事务之间的交互, 以防止它们破坏数据库的一致性
+
+调度: 一系列指令，指定了并发事务的指令以何种时间顺序执行.
+
+- 一组事务的调度必须包含这些事务的所有指令。">
+<meta property="og:title" content="数据库系统概念">
+<meta property="og:description" content="![img.png](/img/%5B摘要%5D数据库系统概念/封面.png)
+
+# 高级数据库
+
+[Database System Concepts<br>Seventh Edition](https://db-book.com/)
+
+---
+
+## 17章: 交易
+
+概述:
+
+- [交易的概念](#交易的概念)
+- [交易状态](#交易状态)
+- [并发执行](#并发执行)
+- [可串行化](#可串行化)
+- [可恢复性](#可恢复性)
+- [隔离的实施](#隔离的实施)
+- [SQL中的事物定义](#SQL中的事物定义)
+- [可串行化的测试](#可串行化的测试)
+
+### 交易的概念
+
+Transaction Concept
+
+**交易**是程序执行的一个单元, 它访问并且可能更新各种数据项.
+
+为了保证数据的完整性, 数据库系统必须确保:
+
+- 原子性: 要么事务的所有操作都在数据库中得到正确反映, 要么全部操作都不反映
+- 一致性: 孤立地执行一个事务可保持数据库的一致性
+- 隔离性: 尽管多个事务可能并发执行, 但每个事务都必须对其他并发执行的事物一无所知
+- 持久性: 交易成功完成后, 对数据库所做的更改会得以保存, 即便出现系统故障也是如此
+
+### 交易状态
+
+Transaction State
+
+- 活动: 初始状态; 事务在执行期间一直处于此状态
+- 部分提交: 在执行完最后一个语句之后
+- 失败: 在发现正常的执行流程无法继续进行之后
+- 已终止: 在事务已回滚且数据库恢复到事务开始前的状态之后.
+    - 事务终止后有两个选择:
+        - 重新启动交易(只有在没有内部逻辑错误的情况下)
+        - 终止交易
+- 已提交: 在成功完成之后
+
+![交易状态图](/img/%5B摘要%5D数据库系统概念/交易状态图.png)
+
+### 并发执行
+
+Concurrent Executions
+
+系统中允许多个事务同时运行.
+优点在于:
+
+- **处理器和磁盘利用率高**, 带来了更高的交易吞吐量
+- 交易的平均响应时间缩短: 短交易无须等待长交易
+
+并发控制方案(实现隔离的机制)
+
+- 要控制并发事务之间的交互, 以防止它们破坏数据库的一致性
+
+调度: 一系列指令，指定了并发事务的指令以何种时间顺序执行.
+
+- 一组事务的调度必须包含这些事务的所有指令。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://CX9898.github.io/post/shu-ju-ku-xi-tong-gai-nian.html">
+<meta property="og:image" content="https://cx9898.github.io/img/CX.jpg">
+<title>数据库系统概念</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">数据库系统概念</h1>
+<div class="title-right">
+    <a href="https://CX9898.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/CX9898/CX9898.github.io/issues/5" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%B0%81%E9%9D%A2.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%B0%81%E9%9D%A2.png" alt="img.png" style="max-width: 100%;"></a></p>
+<h1>高级数据库</h1>
+<p><a href="https://db-book.com/" rel="nofollow">Database System Concepts<br>Seventh Edition</a></p>
+<hr>
+<h2>17章: 交易</h2>
+<p>概述:</p>
+<ul>
+<li><a href="#%E4%BA%A4%E6%98%93%E7%9A%84%E6%A6%82%E5%BF%B5">交易的概念</a></li>
+<li><a href="#%E4%BA%A4%E6%98%93%E7%8A%B6%E6%80%81">交易状态</a></li>
+<li><a href="#%E5%B9%B6%E5%8F%91%E6%89%A7%E8%A1%8C">并发执行</a></li>
+<li><a href="#%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96">可串行化</a></li>
+<li><a href="#%E5%8F%AF%E6%81%A2%E5%A4%8D%E6%80%A7">可恢复性</a></li>
+<li><a href="#%E9%9A%94%E7%A6%BB%E7%9A%84%E5%AE%9E%E6%96%BD">隔离的实施</a></li>
+<li><a href="#SQL%E4%B8%AD%E7%9A%84%E4%BA%8B%E7%89%A9%E5%AE%9A%E4%B9%89">SQL中的事物定义</a></li>
+<li><a href="#%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96%E7%9A%84%E6%B5%8B%E8%AF%95">可串行化的测试</a></li>
+</ul>
+<h3>交易的概念</h3>
+<p>Transaction Concept</p>
+<p><strong>交易</strong>是程序执行的一个单元, 它访问并且可能更新各种数据项.</p>
+<p>为了保证数据的完整性, 数据库系统必须确保:</p>
+<ul>
+<li>原子性: 要么事务的所有操作都在数据库中得到正确反映, 要么全部操作都不反映</li>
+<li>一致性: 孤立地执行一个事务可保持数据库的一致性</li>
+<li>隔离性: 尽管多个事务可能并发执行, 但每个事务都必须对其他并发执行的事物一无所知</li>
+<li>持久性: 交易成功完成后, 对数据库所做的更改会得以保存, 即便出现系统故障也是如此</li>
+</ul>
+<h3>交易状态</h3>
+<p>Transaction State</p>
+<ul>
+<li>活动: 初始状态; 事务在执行期间一直处于此状态</li>
+<li>部分提交: 在执行完最后一个语句之后</li>
+<li>失败: 在发现正常的执行流程无法继续进行之后</li>
+<li>已终止: 在事务已回滚且数据库恢复到事务开始前的状态之后.
+<ul>
+<li>事务终止后有两个选择:
+<ul>
+<li>重新启动交易(只有在没有内部逻辑错误的情况下)</li>
+<li>终止交易</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>已提交: 在成功完成之后</li>
+</ul>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E4%BA%A4%E6%98%93%E7%8A%B6%E6%80%81%E5%9B%BE.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E4%BA%A4%E6%98%93%E7%8A%B6%E6%80%81%E5%9B%BE.png" alt="交易状态图" style="max-width: 100%;"></a></p>
+<h3>并发执行</h3>
+<p>Concurrent Executions</p>
+<p>系统中允许多个事务同时运行.<br>
+优点在于:</p>
+<ul>
+<li><strong>处理器和磁盘利用率高</strong>, 带来了更高的交易吞吐量</li>
+<li>交易的平均响应时间缩短: 短交易无须等待长交易</li>
+</ul>
+<p>并发控制方案(实现隔离的机制)</p>
+<ul>
+<li>要控制并发事务之间的交互, 以防止它们破坏数据库的一致性</li>
+</ul>
+<p>调度: 一系列指令，指定了并发事务的指令以何种时间顺序执行.</p>
+<ul>
+<li>一组事务的调度必须包含这些事务的所有指令。</li>
+<li>必须保持每个单独事务中指令出现的顺序。</li>
+</ul>
+<p>如果一个事务成功完成其执行，它将有一个提交指令作为最后一条语句。</p>
+<ul>
+<li>默认情况下，假定事务执行提交指令作为其最后一步。</li>
+</ul>
+<p>如果一个事务未能成功完成其执行，它将有一个中止指令作为最后一条语句。</p>
+<h3>可串行化</h3>
+<p>Serializability</p>
+<p>基本假设: 每笔交易都保持数据库的一致性</p>
+<p>一组事务的串行执行保持了数据库的一致性</p>
+<p>如果一个(可能是并发的)调度等同于一个串行调度, 那么它就是可串行化的.<br>
+调度的不同等值形式引发了以下概念:</p>
+<ul>
+<li>冲突可串行化</li>
+<li>视图可串行化</li>
+</ul>
+<h4>冲突可串行化</h4>
+<p>两个操作被认为是冲突的三个条件:</p>
+<ul>
+<li>属于不同的事务</li>
+<li>在同一个数据项上执行</li>
+<li>至少有一个操作是写操作</li>
+</ul>
+<p>如果通过一系列非冲突指令的交换操作, 一个调度S能够被转换为一个调度s', 我们就说S和S'是冲突等价的.</p>
+<p>如果一个调度S与一个串行调度在冲突方面等价, 那么就说该调度是"冲突可串行化"的.</p>
+<p>通过一系列非冲突指令的交换, 调度表3可以转换为调度表6, 即一个连续的调度表, 其中T2遵循T1.<br>
+因此, 调度表3是"冲突可串行化"的.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96.png" alt="冲突可串行化" style="max-width: 100%;"></a></p>
+<p>不可"冲突可串行化"的调度示例:</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E4%B8%8D%E5%8F%AF%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96%E7%A4%BA%E4%BE%8B.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E4%B8%8D%E5%8F%AF%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96%E7%A4%BA%E4%BE%8B.png" alt="不可冲突可串行化示例" style="max-width: 100%;"></a></p>
+<h4>视图可串行化</h4>
+<p><strong>视图等价</strong>:<br>
+如果两个调度在对每个数据项的读写操作上是一致的，那么它们就是<strong>视图等价</strong><br>
+的。这意味着，尽管两个调度可能在事务的执行顺序上有所不同，但它们对于数据库中每个数据项的最终状态的影响是相同的.</p>
+<p>如果一个调度S与某个串行调度是视图等价的, 那么这个调度S就是视图可串行化的.</p>
+<p>每一个冲突可串行化的调度也是视图可串行化的.</p>
+<p>以下是一个可视图串行化但不可冲突可串行化的示例:</p>
+<p><a target="_blank" rel="noopener noreferrer" href="img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%8F%AF%E8%A7%86%E5%9B%BE%E4%B8%B2%E8%A1%8C%E5%8C%96%E4%BD%86%E4%B8%8D%E5%8F%AF%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96%E7%9A%84%E7%A4%BA%E4%BE%8B.png"><img src="img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%8F%AF%E8%A7%86%E5%9B%BE%E4%B8%B2%E8%A1%8C%E5%8C%96%E4%BD%86%E4%B8%8D%E5%8F%AF%E5%86%B2%E7%AA%81%E5%8F%AF%E4%B8%B2%E8%A1%8C%E5%8C%96%E7%9A%84%E7%A4%BA%E4%BE%8B.png" alt="可视图串行化但不可冲突可串行化的示例" style="max-width: 100%;"></a></p>
+<h4>可串行化的测试</h4>
+<p>先行图的构建步骤:</p>
+<ul>
+<li>顶点(Vertices): 图中的每个顶点代表一个事务. 例如, 如果有事务T1, T2, ..., Tn，那么图中就会有相应的n个顶点.</li>
+<li>边(Arcs)：如果两个事务Ti和Tj之间存在冲突, 并且Ti在Tj之前访问了引起冲突的数据项, 那么我们就在Ti和Tj之间画一条有向边.<br>
+从Ti指向Tj.</li>
+<li>边的标签(Labels)：每条边可以被标记上引起冲突的数据项,以明确指出是哪一项数据导致了这两个事务之间的冲突.</li>
+</ul>
+<p>先行图与可串行化:</p>
+<ul>
+<li>无环属性：如果一个调度是可串行化的，那么其对应的先行图应该是无环的。这是因为在串行调度中，事务是顺序执行的，不存在循环依赖的情况。</li>
+<li>检测环：通过检查先行图中是否存在环，我们可以判断一个调度是否可串行化。如果图中存在环，那么这个调度就不是可串行化的，因为环表示事务之间存在循环依赖，无法找到一个满足所有事务冲突要求的串行顺序。</li>
+</ul>
+<h3>可恢复性</h3>
+<p>Recoverability</p>
+<p>需要处理事务失败对并发运行的事物的影响.</p>
+<p>可恢复调度: 如果一个事务Tj读取了一个数据项, 该数据此前是由Ti写入的, 那么Ti的提交操作会出现在Tj的提交操作之前.</p>
+<p>以下调度属于无法恢复</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E6%97%A0%E6%B3%95%E6%81%A2%E5%A4%8D%E7%9A%84%E8%B0%83%E5%BA%A6.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E6%97%A0%E6%B3%95%E6%81%A2%E5%A4%8D%E7%9A%84%E8%B0%83%E5%BA%A6.png" alt="无法恢复的调度" style="max-width: 100%;"></a></p>
+<p>如果T8应该终止, T9可能会读取到不一致的数据库状态. 因此, 数据库必须确保调度是可恢复的</p>
+<p><strong>级联回滚</strong>: 单个事务故障会导致一系列事务回滚.<br>
+以下调度中所有事物都尚未提交(因此该调度是可恢复的)</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%8F%AF%E6%81%A2%E5%A4%8D%E8%B0%83%E5%BA%A6.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E5%8F%AF%E6%81%A2%E5%A4%8D%E8%B0%83%E5%BA%A6.png" alt="可恢复调度" style="max-width: 100%;"></a></p>
+<p>缺点是可能导致大量工作的付诸东流</p>
+<h3>隔离的实施</h3>
+<p>Implementation of Isolation</p>
+<p>隔离级别的实现:</p>
+<ul>
+<li>锁定
+<ul>
+<li>对整个数据库进行锁定与单个项目进行锁定</li>
+<li>保持锁定状态多久?</li>
+<li>共享锁与独立锁</li>
+</ul>
+</li>
+<li>时间戳
+<ul>
+<li>分配交易时间戳, 例如在交易开始时</li>
+<li>数据项储存两个时间戳
+<ul>
+<li>读取时间戳</li>
+<li>写入时间戳</li>
+</ul>
+</li>
+<li>时间戳用于检测无序访问</li>
+</ul>
+</li>
+<li>每个数据项的多个版本
+<ul>
+<li>允许事务从数据库的"快照"中读取数据</li>
+</ul>
+</li>
+</ul>
+<h3>SQL中的事物定义</h3>
+<p>Transaction Definition in SQL</p>
+<p>在SQL中, 事务是隐式开始的.</p>
+<p>在SQL中, 一条事务以以下方式结束:</p>
+<ul>
+<li>提交工作, 提交当前事务并开始新事务</li>
+<li>回滚操作, 会导致当前事务终止</li>
+</ul>
+<p>在几乎所有数据库系统中, 默认情况下, 如果每条SQL语句执行成功, 也会隐式提交.</p>
+<hr>
+<h2>18章 并发控制</h2>
+<p>概述:</p>
+<ul>
+<li><a href="#%E5%9F%BA%E4%BA%8E%E9%94%81%E7%9A%84%E5%8D%8F%E8%AE%AE">基于锁的协议</a></li>
+<li><a href="#%E5%9F%BA%E4%BA%8E%E6%97%B6%E9%97%B4%E6%88%B3%E7%9A%84%E5%8D%8F%E8%AE%AE">基于时间戳的协议</a></li>
+<li><a href="#%E5%9F%BA%E4%BA%8E%E9%AA%8C%E8%AF%81%E7%9A%84%E5%8D%8F%E8%AE%AE">基于验证的协议</a></li>
+<li><a href="#%E5%A4%9A%E9%92%9F%E7%B2%92%E5%BA%A6">多钟粒度</a></li>
+<li><a href="#%E5%A4%9A%E7%89%88%E6%9C%AC%E6%96%B9%E6%A1%88">多版本方案</a></li>
+<li><a href="#%E6%8F%92%E5%85%A5%E5%92%8C%E5%88%A0%E9%99%A4%E6%93%8D%E4%BD%9C">插入和删除操作</a></li>
+<li><a href="#%E7%B4%A2%E5%BC%95%E7%BB%93%E6%9E%84%E4%B8%AD%E7%9A%84%E5%B9%B6%E5%8F%91">索引结构中的并发</a></li>
+</ul>
+<h3>基于锁的协议</h3>
+<p>Lock-Based Protocols</p>
+<p>锁是一种控制对数据项的并发访问的机制</p>
+<p>数据项可以以两种模式锁定:</p>
+<ul>
+<li>独占(X)模式. 数据既可以读取也可以写入.</li>
+<li>共享(S)模式. 数据项只能读取.</li>
+</ul>
+<p>向并发控制管理器发出锁定请求. 只有在请求获得批准后, 事务才能继续进行.</p>
+<p>锁-兼容性矩阵:</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E9%94%81%E5%85%BC%E5%AE%B9%E6%80%A7%E7%9F%A9%E9%98%B5.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E9%94%81%E5%85%BC%E5%AE%B9%E6%80%A7%E7%9F%A9%E9%98%B5.png" alt="锁-兼容性矩阵" style="max-width: 100%;"></a></p>
+<ul>
+<li>如果请求的锁与其他事物对该项已持有的锁兼容, 则一个事务可能会被授予对该项的锁.</li>
+<li>任意数量的事务可以持有对一个项目的共享锁</li>
+<li>但如果任何事务对该项事务持有独占锁, 则其他事务对该项事务不可持有任何锁</li>
+</ul>
+<h4>死锁</h4>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E6%AD%BB%E9%94%81%E7%A4%BA%E4%BE%8B.png"><img src="/img/%5B%E6%91%98%E8%A6%81%5D%E6%95%B0%E6%8D%AE%E5%BA%93%E7%B3%BB%E7%BB%9F%E6%A6%82%E5%BF%B5/%E6%AD%BB%E9%94%81%E7%A4%BA%E4%BE%8B.png" alt="死锁" style="max-width: 100%;"></a></p>
+<p>T3和T4都无法取得进展.<br>
+T4执行到 <code class="notranslate">lock-S(B)</code> 会导致T4等待T3释放对B的锁, 而T3执行到 <code class="notranslate">lock-X(A)</code> 会导致T3等待T4释放对A的锁.</p>
+<p>这种情况称为死锁</p>
+<ul>
+<li>要处理死锁, 必须回滚T3或T4中的一个, 并释放其锁</li>
+</ul>
+<p>在大多数锁定协议中存在死锁的可能性. 死锁是一种不可避免的恶果.</p>
+<p>如果并发控制管理器设计不当, 也可能导致"饥饿".<br>
+例如:</p>
+<ul>
+<li>一个事务可能在等待对一个项目的X锁,而一系列其他事务请求并获得了对同一项目的S锁.</li>
+<li>由于死锁, 同一事务被反复回滚</li>
+</ul>
+<p>可以设计并发控制管理器来防止饥饿现象.</p>
+<p>续...</p>
+<hr>
+<h3>基于时间戳的协议</h3>
+<p>Timestamp-Based Protocols</p>
+<p>每笔交易在进入系统时都会被赋予一个时间戳TS(Ti)</p>
+<ul>
+<li>每笔交易都有一个唯一的时间戳</li>
+<li>较新的交易的时间戳严格大于较早的交易</li>
+<li>时间戳可以基于一个逻辑计数器
+<ul>
+<li>实时可能并非独一无二</li>
+<li>可以使用(挂钟时间, 逻辑计数器)来确保</li>
+</ul>
+</li>
+</ul>
+<p>基于时间戳的协议管理并发执行, 使得时间戳顺序=可串行化顺序</p>
+<p>几种基于时间戳的替代协议:</p>
+<ul>
+<li><a href="#%E6%97%B6%E9%97%B4%E6%88%B3%E6%8E%92%E5%BA%8F%E5%8D%8F%E8%AE%AE">时间戳排序协议</a></li>
+</ul>
+<h4>时间戳排序协议</h4>
+<p>Timestamp-Ordering(TSO) Protocol</p>
+<p>为每个数据Q维护两个时间戳值:</p>
+<ul>
+<li><code class="notranslate">W-timestamp(Q)</code> 是任何成功执行 <code class="notranslate">write(Q)</code> 的事务的最大时间戳</li>
+<li><code class="notranslate">R-timestamp(Q)</code> 是任何成功执行 <code class="notranslate">read(Q)</code> 的事务的最大时间戳</li>
+</ul>
+<p>对任何写操作施加规则以确保</p>
+<ul>
+<li>任何冲突的操作都是按照时间戳顺序执行的</li>
+<li>无需操作会导致事务回滚</li>
+</ul>
+<p>假设事务Ti发出一个 <code class="notranslate">read(Q)</code></p>
+<ol>
+<li>如果 <code class="notranslate">TS(Ti) ≤ W-timestamp(Q)</code>, 那么Ti需要读取一个已经被覆盖的Q的值. 因此, 读取操作被拒绝, 并且Ti被回滚</li>
+<li>如果 <code class="notranslate">TS(Ti) ≥ W-timestamp(Q)</code>, 则执行 <code class="notranslate">read</code> 操作, 并将 <code class="notranslate">R-timestamp(Q)</code> 设置为 <code class="notranslate">max(R-timestamp(Q),TS(Ti))</code></li>
+</ol>
+<p>假设事务Ti发出一个 <code class="notranslate">write(Q)</code></p>
+<ol>
+<li>如果 <code class="notranslate">TS(Ti) ＜ R-timestamp(Q)</code>, 那么Ti所生成的Q的值之前是需要的, 并且系统假定该值永远不会被生成.<br>
+因此写入操作被拒绝, 并且Ti被回滚</li>
+<li>如果 <code class="notranslate">TS(Ti) ＜ W-timestamp(Q)</code>, 那么Ti正试图写入Q的过时值. 因此, 此 <code class="notranslate">write</code> 操作被拒绝, 并且Ti被回滚.</li>
+<li>否则, 执行 <code class="notranslate">write</code> 操作, 并将 <code class="notranslate">W-timestamp(Q)</code> 设置为 <code class="notranslate">TS(Ti)</code>.</li>
+</ol>
+<p>续...</p>
+<h3>基于验证的协议</h3>
+<p>Validation-Based Protocols</p>
+<p>idea: 我们能将提交时间用作序列化顺序吗?</p>
+<ul>
+<li>将写操作推迟到事务结束</li>
+<li>跟踪由事务读取/写入的数据项</li>
+<li>在提交时进行验证, 检测任何超出序列化顺序的读取/写入操作</li>
+</ul>
+<p>也被称为"乐观并发控制", 因此事务在执行时完全期望在验证期间一切顺利.</p>
+<p>续...</p>
+<h3>多钟粒度</h3>
+<p>Multiple Granularity</p>
+<h3>多版本方案</h3>
+<p>Multiversion Schemes</p>
+<p>多版本方案保留数据项的旧版本以提高并发性.<br>
+有几种变体:</p>
+<ul>
+<li>多版本时间戳排序</li>
+<li>多版本两阶段锁定</li>
+<li>快照隔离</li>
+</ul>
+<p>Key ideas:</p>
+<ul>
+<li>每次成功地写入都会导致所写入的数据项的新版本被创建.</li>
+<li>使用时间戳来标注版本.</li>
+<li>当发出 <code class="notranslate">read(Q)</code> 操作时, 根据发出读请求的事务的时间戳选择Q的适当版本, 并返回所选版本的值</li>
+</ul>
+<p>读操作永远不必等待, 因为会立即返回一个合适的版本.</p>
+<h4>多版本时间戳排序</h4>
+<p>续...</p>
+<h3>插入和删除操作</h3>
+<p>Insert and Delete Operations</p>
+<h3>索引结构中的并发</h3>
+<p>Concurrency in Index Structures</p>
+<p><strong>在线索引创建:</strong></p>
+<p>问题: 如何在大型关系表上创建索引而不影响并发更新</p>
+<ul>
+<li>缩影构建可能会花费很长时间</li>
+<li>两阶段锁定会阻塞所有并发更新</li>
+</ul>
+<p>Key ideas:</p>
+<ul>
+<li>在关系的快照上构建索引, 但要跟踪快照之后发生的所有更新. 此时未对索引应用更新</li>
+<li>然后应用后续的更新以更上进度</li>
+<li>在追赶阶段默契获取关系锁以组织并发更新</li>
+<li>完成剩余的更新, 并为系统目录添加索引</li>
+<li>后续交易将在目录中查找索引并对其进行更新</li>
+</ul>
+<p>索引与其他数据库项不同, 因为它们唯一的作用就是有助于访问数据.</p>
+<p>索引结构的访问频率通常非常高, 远远高于其他数据项.<br>
+像处理其他数据库项一样处理索引结构, 例如通过对索引节点进行两阶段锁定, 可能会导致并发性低下.</p>
+<p>存在几种索引并发协议, 其中对内部节点的锁会体检释放, 而不是以两阶段的方式释放.<br>
+只要能保持索引的准确性, 对索引进行可序列化的并发访问是可以接受的.<br>
+特别是, 只要我们能最终到达正确的叶节点, 在B+树的内部节点读取的准确值就无关紧要了.</p>
+<p>续...</p></div>
+<div style="font-size:small;margin-top:8px;float:right;">❤️ 转载文章请注明出处，谢谢！❤️</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://CX9898.github.io">CX98的博客</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("07/02/2024"!=""){
+    var startSite=new Date("07/02/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","CX9898/CX9898.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+
+
+</html>
