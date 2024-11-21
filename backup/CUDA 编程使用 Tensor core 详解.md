@@ -10,6 +10,8 @@
 再结合使用过程中的一些问题写出这篇文章.
 本文首先解释了什么是 Tensor core 再详细说明在实际编程中如何使用 Tensor core.
 
+文章链接 : [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)
+
 ---
 
 ## 什么是 Tensor core

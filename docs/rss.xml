@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Thu, 21 Nov 2024 05:37:48 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>CUDA 编程使用 Tensor core 详解</title><link>https://CX9898.github.io/post/CUDA%20-bian-cheng-shi-yong-%20Tensor%20core%20-xiang-jie.html</link><description>![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Thu, 21 Nov 2024 05:40:13 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>CUDA 编程使用 Tensor core 详解</title><link>https://CX9898.github.io/post/CUDA%20-bian-cheng-shi-yong-%20Tensor%20core%20-xiang-jie.html</link><description>![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)&#13;
 &#13;
 # CUDA 编程使用 Tensor core 详解&#13;
 &#13;
@@ -10,6 +10,8 @@
 [cuda-samples](https://github.com/NVIDIA/cuda-samples) 项目中关于 Tensor core 部分的实际代码示例结合其他文章做出总结,&#13;
 再结合使用过程中的一些问题写出这篇文章.&#13;
 本文首先解释了什么是 Tensor core 再详细说明在实际编程中如何使用 Tensor core.&#13;
+&#13;
+文章链接 : [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)&#13;
 &#13;
 ---&#13;
 &#13;
