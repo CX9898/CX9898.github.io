@@ -22,13 +22,13 @@ Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).
 Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.
 **Tensor core 主要设计用于加速矩阵计算.**
 
-![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla%20V100单个SM架构图.png)
+![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla_V100单个SM架构图.png)
 <p style="text-align:center">Tesla V100单个SM架构图</p>
 
 **Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.
 将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.**
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20Core%20执行4x4x4矩阵相乘累加.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_Core_执行4x4x4矩阵相乘累加.png)
 <p style="text-align:center">Tensor Core 执行4x4x4矩阵相乘累加</p>
 
 每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 **D = A * B + C**, 其中 **A, B, C, D 是 4×4 矩阵**.
@@ -36,7 +36,7 @@ A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单�
 
 > 混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20中的混合精度相乘和累加操作.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_中的混合精度相乘和累加操作.png)
 <p style="text-align:center">Tensor core 中的混合精度相乘和累积操作</p>
 
 ---
@@ -111,7 +111,7 @@ CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便
 
 Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.
 
-![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20WMMA%20API%20目前支持的格式和矩阵维度.png)
+![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_WMMA_API_目前支持的格式和矩阵维度.png)
 <p style="text-align:center">Tensor core WMMA API 目前支持的格式和矩阵维度</p>
 
 > 这里只列出部分常用格式.

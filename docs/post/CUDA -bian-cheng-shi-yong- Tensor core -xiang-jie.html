@@ -34,13 +34,13 @@ Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).
 Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.
 **Tensor core 主要设计用于加速矩阵计算.**
 
-![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla%20V100单个SM架构图.png)
+![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla_V100单个SM架构图.png)
 <p style='text-align:center'>Tesla V100单个SM架构图</p>
 
 **Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.
 将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.**
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20Core%20执行4x4x4矩阵相乘累加.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_Core_执行4x4x4矩阵相乘累加.png)
 <p style='text-align:center'>Tensor Core 执行4x4x4矩阵相乘累加</p>
 
 每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 **D = A * B + C**, 其中 **A, B, C, D 是 4×4 矩阵**.
@@ -48,7 +48,7 @@ A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单�
 
 > 混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20中的混合精度相乘和累加操作.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_中的混合精度相乘和累加操作.png)
 <p style='text-align:center'>Tensor core 中的混合精度相乘和累积操作</p>
 
 ---
@@ -123,7 +123,7 @@ CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便
 
 Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.
 
-![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20WMMA%20API%20目前支持的格式和矩阵维度.png)
+![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_WMMA_API_目前支持的格式和矩阵维度.png)
 <p style='text-align:center'>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
 
 > 这里只列出部分常用格式.
@@ -428,13 +428,13 @@ Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).
 Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.
 **Tensor core 主要设计用于加速矩阵计算.**
 
-![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla%20V100单个SM架构图.png)
+![Tesla V100单个SM架构图](/img/CUDA_编程使用_Tensor_core_详解/Tesla_V100单个SM架构图.png)
 <p style='text-align:center'>Tesla V100单个SM架构图</p>
 
 **Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.
 将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.**
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20Core%20执行4x4x4矩阵相乘累加.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_Core_执行4x4x4矩阵相乘累加.png)
 <p style='text-align:center'>Tensor Core 执行4x4x4矩阵相乘累加</p>
 
 每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 **D = A * B + C**, 其中 **A, B, C, D 是 4×4 矩阵**.
@@ -442,7 +442,7 @@ A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单�
 
 > 混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.
 
-![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20中的混合精度相乘和累加操作.png)
+![Tensor core中的混合精度相乘和累加操作](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_中的混合精度相乘和累加操作.png)
 <p style='text-align:center'>Tensor core 中的混合精度相乘和累积操作</p>
 
 ---
@@ -517,7 +517,7 @@ CUDA 9.0 引入了一个以 warp 级别进行操作的矩阵计算函数, 以便
 
 Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.
 
-![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor%20core%20WMMA%20API%20目前支持的格式和矩阵维度.png)
+![Tensor core WMMA API 目前支持的格式和矩阵维度](/img/CUDA_编程使用_Tensor_core_详解/Tensor_core_WMMA_API_目前支持的格式和矩阵维度.png)
 <p style='text-align:center'>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
 
 > 这里只列出部分常用格式.
@@ -883,18 +883,18 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 Tesla V100 GPU架构首次搭搭载了张量核心(Tensor core).<br>
 Volta 架构中每一个 SM 中在固有的 CUDA core 基础上额外搭载了8个 Tensor core.<br>
 <strong>Tensor core 主要设计用于加速矩阵计算.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla%20V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla%20V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png" alt="Tesla V100单个SM架构图" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla_V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tesla_V100%E5%8D%95%E4%B8%AASM%E6%9E%B6%E6%9E%84%E5%9B%BE.png" alt="Tesla V100单个SM架构图" style="max-width: 100%;"></a></p>
 <p>Tesla V100单个SM架构图</p>
 <p><strong>Tensor Core 是执行矩阵乘法累加的运算单元, 并且是混合精度的计算.<br>
 将两个半精度(FP16)矩阵相乘, 并将结果累积到一个累加矩阵中.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20Core%20%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20Core%20%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_Core_%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_Core_%E6%89%A7%E8%A1%8C4x4x4%E7%9F%A9%E9%98%B5%E7%9B%B8%E4%B9%98%E7%B4%AF%E5%8A%A0.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
 <p>Tensor Core 执行4x4x4矩阵相乘累加</p>
 <p>每个 Tensor Core 每时钟周期能执行 4x4x4 个矩阵运算, 执行运算 <strong>D = A * B + C</strong>, 其中 <strong>A, B, C, D 是 4×4 矩阵</strong>.<br>
 A, B是半精度(FP16)的矩阵, 累加矩阵C, D可以是半精度(FP16)或单精度(FP32)的矩阵.</p>
 <blockquote>
 <p>混合精度计算是指在底层硬件算子层面, 使用半精度(FP16)作为输入和输出, 使用全精度(FP32)进行中间结果计算和保存从而不损失过多精度的技术.</p>
 </blockquote>
-<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_core_%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_core_%E4%B8%AD%E7%9A%84%E6%B7%B7%E5%90%88%E7%B2%BE%E5%BA%A6%E7%9B%B8%E4%B9%98%E5%92%8C%E7%B4%AF%E5%8A%A0%E6%93%8D%E4%BD%9C.png" alt="Tensor core中的混合精度相乘和累加操作" style="max-width: 100%;"></a></p>
 <p>Tensor core 中的混合精度相乘和累积操作</p>
 <hr>
 <h2>为什么使用 Tensor core</h2>
@@ -951,7 +951,7 @@ cuDNN 则利用 Tensor Cores 加速卷积和循环神经网络(RNNs)的计算.</
 其中的A、B、C、D都是更大矩阵的块(tile). 也就是可以使用一个 warp (32个线程) 来计算一个结果矩阵块.</p>
 <p><strong>实际工作中, 一个warp中的每个线程都只计算结果矩阵块的8个数据(16×16/32).</strong></p>
 <p>Tensor core 支持各种元素类型和矩阵维度, 下表列出了目前WMMA API支持的 matrix_a, matrix_b 和 accumulator 矩阵的部分格式和矩阵维度.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20WMMA%20API%20%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor%20core%20WMMA%20API%20%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png" alt="Tensor core WMMA API 目前支持的格式和矩阵维度" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_core_WMMA_API_%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png"><img src="/img/CUDA_%E7%BC%96%E7%A8%8B%E4%BD%BF%E7%94%A8_Tensor_core_%E8%AF%A6%E8%A7%A3/Tensor_core_WMMA_API_%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E6%A0%BC%E5%BC%8F%E5%92%8C%E7%9F%A9%E9%98%B5%E7%BB%B4%E5%BA%A6.png" alt="Tensor core WMMA API 目前支持的格式和矩阵维度" style="max-width: 100%;"></a></p>
 <p>Tensor core WMMA API 目前支持的格式和矩阵维度</p>
 <blockquote>
 <p>这里只列出部分常用格式.<br>
