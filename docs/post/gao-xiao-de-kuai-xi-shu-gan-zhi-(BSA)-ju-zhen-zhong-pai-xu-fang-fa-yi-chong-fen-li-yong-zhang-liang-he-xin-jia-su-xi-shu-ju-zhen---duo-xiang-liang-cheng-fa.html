@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://cx9898.github.io/img/CX.jpg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="![Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/封面.png)
+
+# [论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法
+
+**Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector
+Multiplication**
+
+论文于2024年发表于Euro-Par 2024会议(30th International European Conference on Parallel and Distributed Computing).
+
+稀疏矩阵-多向量乘法(SpMM)又称为稀疏矩阵-稠密矩阵乘法是深度学习模型和科学计算应用中的关键内核.
+然而, 由于非零元素的不规则分布和其产生的不规则内存访问模式, 实现高性能的SpMM具有挑战性.
+在论文中, 提出了一种新颖的稀疏矩阵重排序算法, 该算法考虑了块稀疏性, 以增强Tensor Cores上SpMM的数据局部性.
+对大量稀疏矩阵的实验结果表明了重排序算法的有效性以及利用Tensor Cores进行SpMM的好处.
+
+文章链接: [[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法](https://zhuanlan.zhihu.com/p/14997232589)
+
+---
+
+## 引言
+
+几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的矩阵-矩阵乘法.
+因此, 专门化的加速器, 如TPU(Tensor Processing Unit)和NVIDIA的Tensor Cores, 最近被引入来加速稠密矩阵-稠密矩阵乘法(DMM).
+
+SpMM核心在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.
+
+之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法.
+
+论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 用于在GPU上高效的重排不规则稀疏矩阵中的行,
+旨在提取高密度块并明智地利用Tensor Cores进行SpMM.
+
+为了克服基于列索引的聚类问题, 论文的矩阵重排算法首先将行划分为多个列块, 以识别块级稀疏模式, 以识别块稀疏模式.
+为了增强SpMM的数据局部性, 在行聚类过程中, BSA重排算法不仅考虑了非零列块的位置, 还考虑每个列块中非零项的数量.
+为了有效地测量编码行向量之间的相似度, 采用考虑向量实际的加权Jaccard相似度.
+
+> 加权Jaccard相似度:
+
+在对行进行重排序后, 根据密度阈值将重排序后的矩阵拆分为稠密块和稀疏剩余.
+采用Blocked-Ellpack格式来储存稠密块中的元素, 并利用NVIDIA的cuSPARSE Block-SpMM来加速运算稠密矩阵.
+对于稀疏剩余部分, 使用压缩稀疏行(CSR)格式来储存, 并在常规CUDA核心上使用NVIDIA的cuPARSE进行SpMM操作.
+
+> Blocked-Ellpack格式: Blocked-Ellpack格式是ELLPACK格式的一个变种, 将矩阵划分为多个块, 每个块内部使用ELLPACK格式储存.
+> ELLPACK格式是一种储存稀疏矩阵的压缩格式, 它将每一行的非零元素按列索引排序后储存.
+
+使用来自深度学习矩阵集合的2586个稀疏矩阵进行广泛的比较和评估,
+结果表明,论文的并行SpMM实现(称为BSA-SpMM)比最先进的替代方案实现了高达21.99倍的加速.
+
+---
+
+## 背景及相关工作
+
+### 稀疏矩阵-多向量乘法(SpMM)
+
+几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的稀疏矩阵-矩阵乘法(SpMM).
+SpMM是将M × K的稀疏输入矩阵S与大小为K × N的稠密输入矩阵D相乘, 生成大小为M×N的稠密输出矩阵O. 即O = S × D.
+
+![SpMM](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/SpMM.png)
+SpMM
+
+SpMM在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.
+
+稀疏矩阵可以表示为基于块的稀疏格式, 例如Blocked-Ellpack格式和Variable Block Row(VBR)格式.
+
+Blocked-Ellpack格式的主要优势在于它可以有效利用Tensor Cores.
+特别是使用Blocked-Ellpack格式时, 可以通过使用NVIDIA的cuSPARSE库的 `cusparseSpMM()` 函数来利用Tensor Cores进行并行块矩阵乘法.
+
+VBR格式与Blocked-Ellpack格式不同的是它会储存不同大小的非零块.
+而NVIDIA的cuBLAS库的 `cublasGemmEx()` 函数支持可变的矩阵大小, 可以通过这个函数以利用Tensor Cores进行稀疏矩阵-稠密矩阵乘法.
+
+---
+
+## 带有Tensor Cores的图形处理器(GPU)
+
+Tensor Cores是NVIDIA开发的一种专门用于加速矩阵-矩阵乘法和累加的硬件单元.
+在Volta架构中首次引入, 并在后续的Ampere架构和Hopper架构中得到了进一步的优化.
+
+为了高效执行矩阵-矩阵乘法和累加操作, 通过32个线程一组的线程束(warp)协作并行处理矩阵中的子矩阵块. 与标准单精度(FP32)
+浮点格式相比, Tensor Cores通过利用低精度浮点格式(例如FP16), 实现了更高的性能和更低的内存需求.
+
+> 关于Tensor core的具体内容可参考另一篇文章: [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)
+
+---
+
+## 用Tensor Core实现SpMM的挑战
+
+Tensor Core 是专为高性能矩阵计算设计的硬件加速单元, 特别擅长处理密集矩阵乘法. 然而，SpMM中稀疏矩阵的计算模式难以直接适配
+Tensor Core 的工作方式, 需要优化数据格式和计算流程来高效利用硬件潜力.
+
+Tensor Core用于计算两个矩阵块的乘法和累加, 而直接在Tensor Core上处理SpMM中会因为每个块中计算的有效数据数量较少而导致资源的浪费.
+例如, 下面这个分块矩阵只有两个非零元素, 而Tensor core是一起计算整个矩阵块, 经过Tensor core计算后只有两个数据是有效数据.
+
+![两个非零元素的分块矩阵](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/两个非零元素的矩阵块.png)
+4×4的矩阵块中只有两个非零元素
+
+之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法. 核心思想是将原稀疏矩阵的元素打乱顺序,
+将具有同一行但不同列的元素或同一列但不同行的元素集合在一起, 以形成密集块(但也有可能会有零元素).
+
+通过重排序稀疏矩阵的数据, 根据列密度对每个行面板的列或对每个列面板的行进行重排, 形成密集分块. 能够有效的增加资源利用率.
+例如, 输入稀疏矩阵中某一块数据拥有下图这种性质.
+
+![稀疏矩阵聚类的例子](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/稀疏矩阵聚类的例子.png)
+稀疏矩阵聚类的例子
+
+左稀疏块的数据拥有所在同一行或同一列的属性, 可以将其聚类为右边的密集块, 保留其所在原始位置的信息. 通过将类似这样可以聚类的数据聚合成密集块,
+再通过Tensor core进行计算, 能够大大加快运算时间.
+
+**论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 与以上例子不同的是只针对每行进行比较和重组.
+块稀疏感知(Block-Sparsity-Aware)重排算法在GPU上高效的重排不规则稀疏矩阵中的行, 旨在提取高密度块并明智地利用Tensor
+Cores进行SpMM.**
+
+---
+
+## 关于稀疏矩阵重排以优化稀疏矩阵乘法(SpMM)的相关工作
+
+为了增强SpMM的数据局部性, 最近已经开发除了集中稀疏重排序和压缩算法.
+以往基于利用Tensor Cores, 为稀疏矩阵重排序的努力大致可以分为两类.
+
+Hong等人提出了一种自适应稀疏分块(ASpT)方法, 首先将稀疏矩阵划分为多个行面板, 其中每个行面板由连续的行组成.
+然后, 根据列密度对每个行面板的列进行重排, 形成密集分块.
+Jiang等人进一步扩展了ASpT方法, 引入了一种行重排技术, 称为ASpT-RR.
+ASpT-RR不是直接将稀疏矩阵的连续行分为行面板, 而是首先对行进行重排, 将相似的行分组到同一个行面板中.
+但是当非零元素的列索引广泛分散时, 基于非零元素的列索引对行进行重排可能导致聚类失败.
+Gale等人提出了一种行交换技术(称为Sputnik), 根据每行的非零元素数量重新排列行, 以实现GPU上常规SM中的负载均衡.
+
+> 聚类(clustering)是指将具有相似特征的元素放在一起, 以提高缓存利用率和计算效率. 聚类失败意味着由于非零元素的列索引过于分散,
+> 无法通过重排来形成连续的块, 从而无法利用处理器的向量化指令或其他优化手段来提高性能, 可能导致计算效率降低.
+
+Labini等人提出了一种称为1-SA的行重排序技术, 该技术使用一种基于Saad算法的变体, 通过一维分块对行进行重排序.
+1-SA将行划分为多个列分区, 并基于非零列分区模式的Jaccard相似度对行进行聚类.
+使用VBR格式储存包含非零元素的变大小块, 使用NVIDIA的 `cublasGemmEx()` 函数利用Tensor Cores将这些块与右乘稠密矩阵相乘.
+但是1-SA方法重新排序的矩阵中稀疏填充的块即使只包含一个非零元素, 也是以VBR格式储存, 然后传递给Tensor Cores进行计算.
+Tensor Core上处理这些稀疏块会因为每个块中填充的零数量较多而导致利用率不足.
+Yuke等人提出了一种稀疏图转换方案(称为TC-GNN), 将稀疏矩阵的行面板中的非零元素压缩, 以利用Tensor Cores进行SpMM操作.
+但是在对行面板中非零元素进行压缩时, TC-GNN忽略了考虑各列中非零元素数量的变化, 并且没有比较行之间的稀疏模式.
+
+---
+
+## BSA-SpMM: 块稀疏感知矩阵乘法
+
+在本节中, 首先描述BSA-SpMM的概述. 然后讲解在比较行过程中使用的方法, 最后详细介绍块稀疏感知(BSA)重排序算法. 稀疏感知(BSA)
+重排序算法的核心思想是将原稀疏矩阵的每一行都拆分开, 重新排列顺序(记录原行ID), 将相似的行排列在一起, 以形成密集块.
+密集块通过Tensor Core核心计算, 剩余部分利用CUDA核心计算.
+
+---
+
+### BSA-SpMM概述
+
+![BSA-SpMM概述图](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA-SpMM概述图.png)
+BSA-SpMM概述图
+
+BSA-SpMM的总流程如图所示, 将输入稀疏矩阵S进行BSA重排, 生成的重排稀疏矩阵$S_R$进行分块(Tiling),
+根据分块后的块(Tiled)的密度将块分为两类: **稠密块$S_d$**和**稀疏剩余$S_s$**.
+
+将稠密块Sd以Blocked-ELL格式储存, 在Tensor Cores上与稠密矩阵D进行矩阵乘法运算.
+将稀疏剩余Ss以CSR格式储存, 在常规CUDA核心上与稠密矩阵D进行矩阵乘法运算.
+
+最终将两个结果合并后生成最终的输出矩阵O.
+
+---
+
+### 离散度(Dispersions)
+
+在重排序过程前, 通过计算每行中每个列块的非零元素数量, 将其一一储存以生成一组编码向量, 称为Encodings.
+为每一行生成一组离散度, 称为Dispersions. 离散度是基于非零列块的数量和零填充的数量来定义的,
+表示非零元素在行中的分散程度: $\tau\times nnzb+zf$, 其中 $\tau$ 表示每行中列块的大小, $nnzb$ 表示具有非零元素的列块的数量,
+$zf$ 表示一行中具有非零元素的列块的零填充的数量.
+**一行具有高离散度的话, 意味着其非零元素高度分散在多个列块中.**
+**相反, 当一行具有低离散度时, 非零元素主要集中在特定的列块中.**
+Encodings和Dispersions均通过CUDA内核中的并行归约计算.
+
+![离散度计算的两行示例](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/离散度计算的两行示例.png)
+离散度计算的两行示例
+
+**离散度有助于识别和聚类具有相似块稀疏性的行, 从而优化数据局部性. 根据离散度(Dispersions)将行索引按升序排序, 可以提高聚类的效率.
+具有相似块稀疏性的行(即零元素在列块中的分布相似)更有可能被聚类到一起.** 排序结果储存在ascending中.
+
+具体来说, 排序是为了当一个行作为候选行被分组到某个簇中时, 如果比另一个具有更多离散非零元素的行更分散, 则优先考虑.
+空行的离散度为0, 分配一个簇ID为-1以排除所有空行.
+
+> 在数据挖掘和机器学习领域, 簇指的是数据点的集合, 这些数据点在某些特征或属性上彼此相似, 而与其他簇的数据点不同.
+> 聚类分析(Clustering)是一种将数据集中的对象分组的算法, 目的是使同一个簇内的对象相似度高, 而不同簇之间的对象相似度低.
+
+---
+
+### 加权Jaccard相似度
+
+**论文提出的'加权Jaccard相似度(weighted Jaccard similarity)'是'Jaccard相似度'的一种变体. 用于衡量稀疏矩阵中行之间的相似性,
+以便在重排序过程中将相似行聚集在一起形成密集块.**
+
+![公式1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/公式1.png)
+公式1:加权jaccard相似度
+
+$J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i^{cmp})}{\sum_i\max(E_i^{rep},E_i^{cmp})}$
+
+公式1中, $\mathbf{\hat{E}^{rep}}$ 和 $\mathbf{\hat{E}^{cmp}}$ 表示两个编码的行向量, 每个向量都经过归一化处理,
+以减轻在测量两个向量之间的相似度时向量大小的影响.$E_i^{rep}$ 和 $E_i^{cmp}$ 分别表示 $\mathbf{\hat{E}^{rep}}$
+和 $\mathbf{\hat{E}^{cmp}}$ 中第i个元素. 将$E^{rep}$和$E^{cmp}$视为未归一化的向量, 将 $\mathbf{\hat{E}^{rep}}$
+和 $\mathbf{\hat{E}^{cmp}}$ 视为归一化的向量.
+
+> 编码行向量: 将矩阵的一行划分为大小为 $\tau$ 的列块, 记录每个块中非零元素的数量.
+
+**用上节中离散度计算的两行例子来计算加权Jaccard相似度:**
+
+- $E^{rep}$ : [8, 10, 18, 0, 3]
+- $E^{cmp}$ : [1, 20, 0, 14, 0]
+
+1. 先对其进行归一化:
+    - norm rep = $\sqrt{8^{2} + 10^{2} + 18^{2} + 0^{2} + 3^{2}}\approx22.3$
+    - norm cmp = $\sqrt{1^{2} + 20^{2} + 0^{2} + 14^{2} + 0^{2}}\approx24.4$
+    - $\mathbf{\hat{E}^{rep}}$ : [0.35, 0.45, 0.81, 0, 0.13]
+    - $\mathbf{\hat{E}^{cmp}}$ : [0.04, 0.89, 0, 0.63, 0]
+2. 对每一对数据, 计算它们的最大值和最小值:
+    - 对于第一对 (0.35, 0.04): 最小值是 0.04, 最大值是 0.35
+    - 对于第二对 (0.45, 0.89): 最小值是 0.45, 最大值是 0.89
+    - 对于第三对 (0.81, 0): 最小值是 0, 最大值是 0.81
+    - 对于第四对 (0, 0.63): 最小值是 0, 最大值是 0.63
+    - 对于第五对 (0.013, 0): 最小值是 0, 最大值是 0.013
+3. 计算所有最小值和最大值的总和:
+    - $\sum_i\min(E_i^{rep},E_i^{cmp})$ = 0.04 + 0.45 + 0 + 0 + 0 = 0.49
+    - $\sum_i\max(E_i^{rep},E_i^{cmp})$ = 0.35 + 0.89 + 0.81 + 0.63 + 0.013 = 2.692
+4. 将最小值总和除以最大值总和得到$J$值:
+    - $J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})$ = $\frac{0.49}{2.692}\approx0.1821$
+
+这个$J$值表示两行之间的相似度. 值越接近1, 表示相似度越高. 在这个例子中, $J$值约为0.1821, 表明两行之间的相似度较低.
+**要确定两行是否足够相似, 需要确定一个相似阈值$(\alpha)$, 超过这个阈值则将其认为是相似的, 低于这个阈值认为是不相似的.**
+
+---
+
+### BSA重排序中的相似性度量
+
+生成包含大量非零元素的密集块对于充分利用Tensor core 进行SpMM至关重要.
+为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类. 此后, 将每行的非零列块表示为包含非零元素的列块.
+在重排序矩阵后提取密集块时, 使用与列块大小相同的密集块大小来增强数据局部性.
+
+---
+
+### GPU加速的BSA重排序算法
+
+生成包含大量非零元素的密集块对于充分利用Tensor core进行SpMM至关重要. 为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类.
+算法1展示了host端的整个BSA重排序过程的伪代码.
+
+![算法1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法1.png)
+算法1:整个BSA重排序过程的伪代码
+
+算法第4-9行: 遍历矩阵所有行索引, 如果当前行的离散度为0, 则分配一个簇ID为-1, 以排除所有空行.
+
+第11行 `BSA_clustering()` 为CUDA核函数, 用于比较各个行来产生簇. GPU实现的关键挑战在于, 所需的线程块数量是未知的,
+在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术. CUDA动态并行允许在核函数内部调用新的内核,
+并能够将新生成的内核与之前运行的内核并行执行. 通过利用动态并行, 在当前线程块正在执行时, 如果产生了新的簇, 则调用一个新的内核,
+通过添加一个新的线程块来生成新的簇. 所以在11行最初调用CUDA内核时只启动一个线程块, 其他内核将在核函数内部使用CUDA动态并行技术调用.
+最后通过将具有相同簇的行聚集在一起, 保持相同簇内的升序, 得到最终的排序行索引P.
+
+> CUDA动态并行技术(CUDA Dynamic Parallelism)是NVIDIA在其CUDA编程模型中引入的一项特性, 它允许在GPU上运行的内核(kernel)
+> 直接在设备端启动新的内核. 类似于递归.
+
+下图展示了在GPU上的BSA重排序总流程.
+
+![/img.png](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/GPU上对BSA重排序的总体流程.png)
+GPU上对BSA重排序的总体流程
+
+BSA重排序算法使用GPU的主要优点是支持并行聚类和加速编码行向量之间的相似度计算.
+GPU中的单个线程块为每个簇执行相似行的分组, 因此, 多个线程块并行地为各自的簇对行进行聚类.
+如图(a)所示, 每个线程块持续计算代表性编码行向量,
+
+GPU实现的关键挑战在于, 所需的线程块数量是未知的, 在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术.
+CUDA动态并行允许在核函数内部调用新的内核, 并能够将新生成的内核与之前运行的内核并行执行.
+通过利用动态并行, 在当前线程块正在执行时, 调用一个新的内核, 通过添加一个新的线程块来生成一个新的簇.
+
+如图(b)所示, 基于相似阈值 $(\alpha)$, 第一个线程对行进行聚类, 形成第一个簇(Cluster 0).
+
+![BSA_clustering()kernel图示](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA_clustering()kernel图示.png)
+
+如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 相似, 则将 $\mathbf{\hat{E}^{cmp}}$ 分组到与
+$\mathbf{\hat{E}^{rep}}$ 相同的簇中.
+
+如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 不同, 则创建额外的线程块用以生成新簇.
+
+1. 图(b)-1: $\mathbf{\hat{E}^{cmp}}$ 称为新簇的代表性编码向量 $\mathbf{\hat{E}^{rep}}$.
+   然后新创建的第二个线程块按照升序依次将其自身的 $\mathbf{\hat{E}^{rep}}$ 与其他分散度高于 $\mathbf{\hat{E}^{rep}}$
+   的 $\mathbf{\hat{E}^{cmp}}$ 进行比较.
+2. 图(b)-2: 但是跳过与已分配到其他簇的任何 $\mathbf{\hat{E}^{cmp}}$ 的比较. 如果 $\mathbf{\hat{E}^{cmp}}$ 与
+   第二个簇的 $\mathbf{\hat{E}^{rep}}$ 不同,
+3. 图(b)-3: 当前内核会反复调用新内核, 以利用额外的线程块创建下一个簇:第三个簇(Cluster 2).
+4. 图(b)-4: 在对所有行进行聚类之后, 通过按每个簇内的分散度升序重新排列行索引, 生成存储关于排列行索引的信息P.
+
+算法2展示了BSA聚类核函数的伪代码, 它在GPU上执行BSA重排序.
+
+![算法2](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法2.png)
+
+BSA聚类核函数通过利用并行归约合动态并行性以及同步方案实现了高度的并行性.
+每个线程块负责形成一个簇并识别与簇的 $\mathbf{\hat{E}^{rep}}$ 相似的 $\mathbf{\hat{E}^{cmp}}$ 向量.
+核函数中, 使用共享内存来维护 $E^{rep}$, 因为他在每个线程块中经常被引用以计算相似度.
+通过适应CUDA编程指南中提供的`__nanosleep()` 函数来实现互斥锁和互斥解锁函数,
+以避免在将 $\mathbf{\hat{E}^{cmp}}$ 分配给另一个簇时出现同步问题, 从而跳过相似度的比较(第9-12行).
+在计算两个向量之间的加权Jaccard相似度时, 使用线程束的shuffle和共享内存进行并行归约操作,
+以获得 $\mathbf{\hat{E}^{rep}}$ 和$\mathbf{\hat{E}^{cmp}}$ 的范数值(第18行).
+
+- 如果确定 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 相似, 则分配 $\mathbf{\hat{E}^{cmp}}$ 的相应簇ID(cid),
+  并通过累加 $\mathbf{\hat{E}^{cmp}}$ 来动态更新 $\mathbf{\hat{E}^{rep}}$ 的值(第25-28行).
+- 否则采用动态并行方案, 当前线程块中的仅一个线程调用一个新内核, 使用一个线程块生成下一个簇(第30-33行).
+
+鉴于多个线程块同时执行以处理多个簇, 需要同步其他内核以防止不止一个线程块比较同一行的情况.
+因此当线程块分配其唯一的 $E^{rep}$ (第5行) 并依次将 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 进行比较时(
+第8-32行),
+使用行互斥锁(正对行的互斥锁集合)以及互斥函数. 此块, 互斥锁的使用确保每个簇只能使用一个线程块, 从而避免多个线程同时锁定导致出现的同步问题.
+
+---
+
+### 密集矩阵块的确定
+
+重排序算法是基于块稀疏模式对行进行排序, 排序后的稀疏矩阵可能呈现出一种块结构, 非零元素集中在特定的列块中的多行内.
+但也有可能存在少量非零元素任然不规则的放置在排序好的矩阵中.
+为了避免在Tensor Cores上处理这些稀疏分布的非零元素, 将重新排序后的矩阵中的密集块和稀疏剩余分开.
+将大小为M×K的重新排序矩阵划分为 $M / \tau \times K / T$ 个大小为 $\tau \times \tau$ 的块,
+并根据非零密度阈值 $\delta$ 来确定大小为 $\tau \times \tau$ 的块是否为稠密块.
+由于调整 $\delta$ 的值与在Tensor Cores上处理密集块的数量密切相关, 根据不同的稀疏矩阵的性能明智地选择最优的 $\delta$ 值.
+
+---
+
+### 压缩Blocked-ELL格式以降低复杂性.
+
+在对矩阵进行重新排序后, 重新排序后的矩阵 $S_R$ 被分为稠密块 $S_d$ 和稀疏剩余 $S_s$. 为了同时使用Tensor Cores处理 $S_d$
+中的密集块,
+采用NVIDIA的cuSPARSE Block-SpMM, 使用Blocked-ELL格式和 'cusparseSpMM()' 函数间接利用Tensor Cores进行并行块矩阵乘法.
+$S_D$ 中的密集块元素是以Block-edELL格式储存, 为了匹配重新排序期间使用的列块大小 $\tau$, 密集块大小定为 $\tau\times\tau$.
+
+因为最初将所有空行重新排列到排序后的矩阵的前面, 能够进一步压缩Blocked-ELL格式.
+将cuSPARSE Block-SpMM的起始指针配置为从Blocked-ELL格式中第一个非零块的出现开始使用Tensor cores进行计算.
+
+对于稀疏剩余 $S_s$ 中的非零元素, 使用CSR格式储存, 以便在CUDA核心上使用NVIDIA的cuSPARSE进行SpMM操作.
+
+$S_p$ 和 $S_s$ 分别独立用于执行SpMM操作, 最后将两个结果合并生成最终的输出矩阵 $O$.
+
+---
+
+## 实验评估
+
+- CPU: 12th Gen Intel(R) Core(TM) i7-12700 (12个物理核心)
+- GPU: NVIDIA RTX 3080 GPU (69个安培SM, 计算能力为8.6, 10GB显存, 带宽为760GB/s).
+- NVCC 12.1编译CUDA, 采用O3优化. C++11标准.
+
+- 数据集:
+    - Deep Learning Matrix Collection(DLMC)的稀疏矩阵, 稀疏度范围从50%到90%.
+    - 通过应用各种剪枝技术到Transformer和ResNet-50模型中生成的2587个非结构化稀疏矩阵.
+        - Transformer稀疏矩阵的行数(M)从512到33288不等
+        - RenNet-50稀疏矩阵的行数(M)从64到2048不等
+    - SuiteSparse矩阵集合的不同大小的稀疏矩阵, 主要包含稀疏度超过90%的稀疏矩阵
+
+---
+
+### 性能评估
+
+![从DLMC收集的稀疏矩阵上的SpMM的性能比较](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/从DLMC收集的稀疏矩阵上的SpMM的性能比较.png)
+从DLMC收集的稀疏矩阵上的SpMM的性能比较. X轴: 稀疏矩阵的稀疏度; Y 轴：以 cuBLAS 为基准并结合 Tensor core
+进行归一化处理后的加速比（黑色虚线水平线). 每个方框中的黑线表示中位加速倍数.
+
+上图展示了BSA-SpMM与其他SpMM实现之间的加速比较, 其中以cuBLAS为基准, 用黑色虚线表示. 所有实验结果都是基于10次不同的执行取平均值得出的.
+在BSA-SpMM中, 使用固定的分块大小$(\tau)$为32, 并为每个实验选择了最佳的分块密度阈值$(\delta)$.
+如图所示, BSA-SpMM实现了平均2.01倍的加速, 超过了cuBLAS.
+
+实验表明, 当使用具有50%到70稀疏性的稀疏矩阵时, BSA-SpMM在所有稀疏矩阵上的表现始终优于其他SpMM实现. 然而, 当保持更高的稀疏性时,
+识别不规则的非零模式并利用Tensor Cores进行SpMM就变得更加困难. 由于BSA-SpMM通过cuSPARSE库处理重新排序矩阵中的稀疏剩余,
+当稀疏度达到90%时,
+在不重新排序的情况下, cuSPARSE的方法会收敛. 然而, 对于超过90%稀疏度的稀疏矩阵, BSA-SpMM实现了平均1.98倍的加速,
+超过了cuSPARSE.
+
+---
+
+## 总结
+
+由于SpMM中非零元素的不规则分布和产生的内存访问模式, 使用非结构化稀疏矩阵进行SpMM具有挑战性. 论文中, 开发了一种新颖的重排序算法,
+通过在行聚类过程中考虑块稀疏模式来增强SpMM的数据局部性. 并且开发了一种高效地GPU实现, 动态并行地聚类行. 最终实验结果表明,
+BSA-SpMM与现有的最先进SpMM实现相比, 获得了最高21.99倍的加速.
+
+论文链接: [Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](https://link.springer.com/chapter/10.1007/978-3-031-69583-4_1)
+
+开源链接: [BSA-SpMM_EURO-PAR-2024](https://github.com/dleunji/BSA-SpMM_EURO-PAR-2024)
+
+---。">
+<meta property="og:title" content="高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法">
+<meta property="og:description" content="![Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/封面.png)
+
+# [论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法
+
+**Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector
+Multiplication**
+
+论文于2024年发表于Euro-Par 2024会议(30th International European Conference on Parallel and Distributed Computing).
+
+稀疏矩阵-多向量乘法(SpMM)又称为稀疏矩阵-稠密矩阵乘法是深度学习模型和科学计算应用中的关键内核.
+然而, 由于非零元素的不规则分布和其产生的不规则内存访问模式, 实现高性能的SpMM具有挑战性.
+在论文中, 提出了一种新颖的稀疏矩阵重排序算法, 该算法考虑了块稀疏性, 以增强Tensor Cores上SpMM的数据局部性.
+对大量稀疏矩阵的实验结果表明了重排序算法的有效性以及利用Tensor Cores进行SpMM的好处.
+
+文章链接: [[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法](https://zhuanlan.zhihu.com/p/14997232589)
+
+---
+
+## 引言
+
+几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的矩阵-矩阵乘法.
+因此, 专门化的加速器, 如TPU(Tensor Processing Unit)和NVIDIA的Tensor Cores, 最近被引入来加速稠密矩阵-稠密矩阵乘法(DMM).
+
+SpMM核心在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.
+
+之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法.
+
+论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 用于在GPU上高效的重排不规则稀疏矩阵中的行,
+旨在提取高密度块并明智地利用Tensor Cores进行SpMM.
+
+为了克服基于列索引的聚类问题, 论文的矩阵重排算法首先将行划分为多个列块, 以识别块级稀疏模式, 以识别块稀疏模式.
+为了增强SpMM的数据局部性, 在行聚类过程中, BSA重排算法不仅考虑了非零列块的位置, 还考虑每个列块中非零项的数量.
+为了有效地测量编码行向量之间的相似度, 采用考虑向量实际的加权Jaccard相似度.
+
+> 加权Jaccard相似度:
+
+在对行进行重排序后, 根据密度阈值将重排序后的矩阵拆分为稠密块和稀疏剩余.
+采用Blocked-Ellpack格式来储存稠密块中的元素, 并利用NVIDIA的cuSPARSE Block-SpMM来加速运算稠密矩阵.
+对于稀疏剩余部分, 使用压缩稀疏行(CSR)格式来储存, 并在常规CUDA核心上使用NVIDIA的cuPARSE进行SpMM操作.
+
+> Blocked-Ellpack格式: Blocked-Ellpack格式是ELLPACK格式的一个变种, 将矩阵划分为多个块, 每个块内部使用ELLPACK格式储存.
+> ELLPACK格式是一种储存稀疏矩阵的压缩格式, 它将每一行的非零元素按列索引排序后储存.
+
+使用来自深度学习矩阵集合的2586个稀疏矩阵进行广泛的比较和评估,
+结果表明,论文的并行SpMM实现(称为BSA-SpMM)比最先进的替代方案实现了高达21.99倍的加速.
+
+---
+
+## 背景及相关工作
+
+### 稀疏矩阵-多向量乘法(SpMM)
+
+几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的稀疏矩阵-矩阵乘法(SpMM).
+SpMM是将M × K的稀疏输入矩阵S与大小为K × N的稠密输入矩阵D相乘, 生成大小为M×N的稠密输出矩阵O. 即O = S × D.
+
+![SpMM](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/SpMM.png)
+SpMM
+
+SpMM在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.
+
+稀疏矩阵可以表示为基于块的稀疏格式, 例如Blocked-Ellpack格式和Variable Block Row(VBR)格式.
+
+Blocked-Ellpack格式的主要优势在于它可以有效利用Tensor Cores.
+特别是使用Blocked-Ellpack格式时, 可以通过使用NVIDIA的cuSPARSE库的 `cusparseSpMM()` 函数来利用Tensor Cores进行并行块矩阵乘法.
+
+VBR格式与Blocked-Ellpack格式不同的是它会储存不同大小的非零块.
+而NVIDIA的cuBLAS库的 `cublasGemmEx()` 函数支持可变的矩阵大小, 可以通过这个函数以利用Tensor Cores进行稀疏矩阵-稠密矩阵乘法.
+
+---
+
+## 带有Tensor Cores的图形处理器(GPU)
+
+Tensor Cores是NVIDIA开发的一种专门用于加速矩阵-矩阵乘法和累加的硬件单元.
+在Volta架构中首次引入, 并在后续的Ampere架构和Hopper架构中得到了进一步的优化.
+
+为了高效执行矩阵-矩阵乘法和累加操作, 通过32个线程一组的线程束(warp)协作并行处理矩阵中的子矩阵块. 与标准单精度(FP32)
+浮点格式相比, Tensor Cores通过利用低精度浮点格式(例如FP16), 实现了更高的性能和更低的内存需求.
+
+> 关于Tensor core的具体内容可参考另一篇文章: [CUDA 编程使用 Tensor core 详解](https://zhuanlan.zhihu.com/p/706494789)
+
+---
+
+## 用Tensor Core实现SpMM的挑战
+
+Tensor Core 是专为高性能矩阵计算设计的硬件加速单元, 特别擅长处理密集矩阵乘法. 然而，SpMM中稀疏矩阵的计算模式难以直接适配
+Tensor Core 的工作方式, 需要优化数据格式和计算流程来高效利用硬件潜力.
+
+Tensor Core用于计算两个矩阵块的乘法和累加, 而直接在Tensor Core上处理SpMM中会因为每个块中计算的有效数据数量较少而导致资源的浪费.
+例如, 下面这个分块矩阵只有两个非零元素, 而Tensor core是一起计算整个矩阵块, 经过Tensor core计算后只有两个数据是有效数据.
+
+![两个非零元素的分块矩阵](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/两个非零元素的矩阵块.png)
+4×4的矩阵块中只有两个非零元素
+
+之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法. 核心思想是将原稀疏矩阵的元素打乱顺序,
+将具有同一行但不同列的元素或同一列但不同行的元素集合在一起, 以形成密集块(但也有可能会有零元素).
+
+通过重排序稀疏矩阵的数据, 根据列密度对每个行面板的列或对每个列面板的行进行重排, 形成密集分块. 能够有效的增加资源利用率.
+例如, 输入稀疏矩阵中某一块数据拥有下图这种性质.
+
+![稀疏矩阵聚类的例子](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/稀疏矩阵聚类的例子.png)
+稀疏矩阵聚类的例子
+
+左稀疏块的数据拥有所在同一行或同一列的属性, 可以将其聚类为右边的密集块, 保留其所在原始位置的信息. 通过将类似这样可以聚类的数据聚合成密集块,
+再通过Tensor core进行计算, 能够大大加快运算时间.
+
+**论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 与以上例子不同的是只针对每行进行比较和重组.
+块稀疏感知(Block-Sparsity-Aware)重排算法在GPU上高效的重排不规则稀疏矩阵中的行, 旨在提取高密度块并明智地利用Tensor
+Cores进行SpMM.**
+
+---
+
+## 关于稀疏矩阵重排以优化稀疏矩阵乘法(SpMM)的相关工作
+
+为了增强SpMM的数据局部性, 最近已经开发除了集中稀疏重排序和压缩算法.
+以往基于利用Tensor Cores, 为稀疏矩阵重排序的努力大致可以分为两类.
+
+Hong等人提出了一种自适应稀疏分块(ASpT)方法, 首先将稀疏矩阵划分为多个行面板, 其中每个行面板由连续的行组成.
+然后, 根据列密度对每个行面板的列进行重排, 形成密集分块.
+Jiang等人进一步扩展了ASpT方法, 引入了一种行重排技术, 称为ASpT-RR.
+ASpT-RR不是直接将稀疏矩阵的连续行分为行面板, 而是首先对行进行重排, 将相似的行分组到同一个行面板中.
+但是当非零元素的列索引广泛分散时, 基于非零元素的列索引对行进行重排可能导致聚类失败.
+Gale等人提出了一种行交换技术(称为Sputnik), 根据每行的非零元素数量重新排列行, 以实现GPU上常规SM中的负载均衡.
+
+> 聚类(clustering)是指将具有相似特征的元素放在一起, 以提高缓存利用率和计算效率. 聚类失败意味着由于非零元素的列索引过于分散,
+> 无法通过重排来形成连续的块, 从而无法利用处理器的向量化指令或其他优化手段来提高性能, 可能导致计算效率降低.
+
+Labini等人提出了一种称为1-SA的行重排序技术, 该技术使用一种基于Saad算法的变体, 通过一维分块对行进行重排序.
+1-SA将行划分为多个列分区, 并基于非零列分区模式的Jaccard相似度对行进行聚类.
+使用VBR格式储存包含非零元素的变大小块, 使用NVIDIA的 `cublasGemmEx()` 函数利用Tensor Cores将这些块与右乘稠密矩阵相乘.
+但是1-SA方法重新排序的矩阵中稀疏填充的块即使只包含一个非零元素, 也是以VBR格式储存, 然后传递给Tensor Cores进行计算.
+Tensor Core上处理这些稀疏块会因为每个块中填充的零数量较多而导致利用率不足.
+Yuke等人提出了一种稀疏图转换方案(称为TC-GNN), 将稀疏矩阵的行面板中的非零元素压缩, 以利用Tensor Cores进行SpMM操作.
+但是在对行面板中非零元素进行压缩时, TC-GNN忽略了考虑各列中非零元素数量的变化, 并且没有比较行之间的稀疏模式.
+
+---
+
+## BSA-SpMM: 块稀疏感知矩阵乘法
+
+在本节中, 首先描述BSA-SpMM的概述. 然后讲解在比较行过程中使用的方法, 最后详细介绍块稀疏感知(BSA)重排序算法. 稀疏感知(BSA)
+重排序算法的核心思想是将原稀疏矩阵的每一行都拆分开, 重新排列顺序(记录原行ID), 将相似的行排列在一起, 以形成密集块.
+密集块通过Tensor Core核心计算, 剩余部分利用CUDA核心计算.
+
+---
+
+### BSA-SpMM概述
+
+![BSA-SpMM概述图](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA-SpMM概述图.png)
+BSA-SpMM概述图
+
+BSA-SpMM的总流程如图所示, 将输入稀疏矩阵S进行BSA重排, 生成的重排稀疏矩阵$S_R$进行分块(Tiling),
+根据分块后的块(Tiled)的密度将块分为两类: **稠密块$S_d$**和**稀疏剩余$S_s$**.
+
+将稠密块Sd以Blocked-ELL格式储存, 在Tensor Cores上与稠密矩阵D进行矩阵乘法运算.
+将稀疏剩余Ss以CSR格式储存, 在常规CUDA核心上与稠密矩阵D进行矩阵乘法运算.
+
+最终将两个结果合并后生成最终的输出矩阵O.
+
+---
+
+### 离散度(Dispersions)
+
+在重排序过程前, 通过计算每行中每个列块的非零元素数量, 将其一一储存以生成一组编码向量, 称为Encodings.
+为每一行生成一组离散度, 称为Dispersions. 离散度是基于非零列块的数量和零填充的数量来定义的,
+表示非零元素在行中的分散程度: $\tau\times nnzb+zf$, 其中 $\tau$ 表示每行中列块的大小, $nnzb$ 表示具有非零元素的列块的数量,
+$zf$ 表示一行中具有非零元素的列块的零填充的数量.
+**一行具有高离散度的话, 意味着其非零元素高度分散在多个列块中.**
+**相反, 当一行具有低离散度时, 非零元素主要集中在特定的列块中.**
+Encodings和Dispersions均通过CUDA内核中的并行归约计算.
+
+![离散度计算的两行示例](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/离散度计算的两行示例.png)
+离散度计算的两行示例
+
+**离散度有助于识别和聚类具有相似块稀疏性的行, 从而优化数据局部性. 根据离散度(Dispersions)将行索引按升序排序, 可以提高聚类的效率.
+具有相似块稀疏性的行(即零元素在列块中的分布相似)更有可能被聚类到一起.** 排序结果储存在ascending中.
+
+具体来说, 排序是为了当一个行作为候选行被分组到某个簇中时, 如果比另一个具有更多离散非零元素的行更分散, 则优先考虑.
+空行的离散度为0, 分配一个簇ID为-1以排除所有空行.
+
+> 在数据挖掘和机器学习领域, 簇指的是数据点的集合, 这些数据点在某些特征或属性上彼此相似, 而与其他簇的数据点不同.
+> 聚类分析(Clustering)是一种将数据集中的对象分组的算法, 目的是使同一个簇内的对象相似度高, 而不同簇之间的对象相似度低.
+
+---
+
+### 加权Jaccard相似度
+
+**论文提出的'加权Jaccard相似度(weighted Jaccard similarity)'是'Jaccard相似度'的一种变体. 用于衡量稀疏矩阵中行之间的相似性,
+以便在重排序过程中将相似行聚集在一起形成密集块.**
+
+![公式1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/公式1.png)
+公式1:加权jaccard相似度
+
+$J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i^{cmp})}{\sum_i\max(E_i^{rep},E_i^{cmp})}$
+
+公式1中, $\mathbf{\hat{E}^{rep}}$ 和 $\mathbf{\hat{E}^{cmp}}$ 表示两个编码的行向量, 每个向量都经过归一化处理,
+以减轻在测量两个向量之间的相似度时向量大小的影响.$E_i^{rep}$ 和 $E_i^{cmp}$ 分别表示 $\mathbf{\hat{E}^{rep}}$
+和 $\mathbf{\hat{E}^{cmp}}$ 中第i个元素. 将$E^{rep}$和$E^{cmp}$视为未归一化的向量, 将 $\mathbf{\hat{E}^{rep}}$
+和 $\mathbf{\hat{E}^{cmp}}$ 视为归一化的向量.
+
+> 编码行向量: 将矩阵的一行划分为大小为 $\tau$ 的列块, 记录每个块中非零元素的数量.
+
+**用上节中离散度计算的两行例子来计算加权Jaccard相似度:**
+
+- $E^{rep}$ : [8, 10, 18, 0, 3]
+- $E^{cmp}$ : [1, 20, 0, 14, 0]
+
+1. 先对其进行归一化:
+    - norm rep = $\sqrt{8^{2} + 10^{2} + 18^{2} + 0^{2} + 3^{2}}\approx22.3$
+    - norm cmp = $\sqrt{1^{2} + 20^{2} + 0^{2} + 14^{2} + 0^{2}}\approx24.4$
+    - $\mathbf{\hat{E}^{rep}}$ : [0.35, 0.45, 0.81, 0, 0.13]
+    - $\mathbf{\hat{E}^{cmp}}$ : [0.04, 0.89, 0, 0.63, 0]
+2. 对每一对数据, 计算它们的最大值和最小值:
+    - 对于第一对 (0.35, 0.04): 最小值是 0.04, 最大值是 0.35
+    - 对于第二对 (0.45, 0.89): 最小值是 0.45, 最大值是 0.89
+    - 对于第三对 (0.81, 0): 最小值是 0, 最大值是 0.81
+    - 对于第四对 (0, 0.63): 最小值是 0, 最大值是 0.63
+    - 对于第五对 (0.013, 0): 最小值是 0, 最大值是 0.013
+3. 计算所有最小值和最大值的总和:
+    - $\sum_i\min(E_i^{rep},E_i^{cmp})$ = 0.04 + 0.45 + 0 + 0 + 0 = 0.49
+    - $\sum_i\max(E_i^{rep},E_i^{cmp})$ = 0.35 + 0.89 + 0.81 + 0.63 + 0.013 = 2.692
+4. 将最小值总和除以最大值总和得到$J$值:
+    - $J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})$ = $\frac{0.49}{2.692}\approx0.1821$
+
+这个$J$值表示两行之间的相似度. 值越接近1, 表示相似度越高. 在这个例子中, $J$值约为0.1821, 表明两行之间的相似度较低.
+**要确定两行是否足够相似, 需要确定一个相似阈值$(\alpha)$, 超过这个阈值则将其认为是相似的, 低于这个阈值认为是不相似的.**
+
+---
+
+### BSA重排序中的相似性度量
+
+生成包含大量非零元素的密集块对于充分利用Tensor core 进行SpMM至关重要.
+为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类. 此后, 将每行的非零列块表示为包含非零元素的列块.
+在重排序矩阵后提取密集块时, 使用与列块大小相同的密集块大小来增强数据局部性.
+
+---
+
+### GPU加速的BSA重排序算法
+
+生成包含大量非零元素的密集块对于充分利用Tensor core进行SpMM至关重要. 为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类.
+算法1展示了host端的整个BSA重排序过程的伪代码.
+
+![算法1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法1.png)
+算法1:整个BSA重排序过程的伪代码
+
+算法第4-9行: 遍历矩阵所有行索引, 如果当前行的离散度为0, 则分配一个簇ID为-1, 以排除所有空行.
+
+第11行 `BSA_clustering()` 为CUDA核函数, 用于比较各个行来产生簇. GPU实现的关键挑战在于, 所需的线程块数量是未知的,
+在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术. CUDA动态并行允许在核函数内部调用新的内核,
+并能够将新生成的内核与之前运行的内核并行执行. 通过利用动态并行, 在当前线程块正在执行时, 如果产生了新的簇, 则调用一个新的内核,
+通过添加一个新的线程块来生成新的簇. 所以在11行最初调用CUDA内核时只启动一个线程块, 其他内核将在核函数内部使用CUDA动态并行技术调用.
+最后通过将具有相同簇的行聚集在一起, 保持相同簇内的升序, 得到最终的排序行索引P.
+
+> CUDA动态并行技术(CUDA Dynamic Parallelism)是NVIDIA在其CUDA编程模型中引入的一项特性, 它允许在GPU上运行的内核(kernel)
+> 直接在设备端启动新的内核. 类似于递归.
+
+下图展示了在GPU上的BSA重排序总流程.
+
+![/img.png](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/GPU上对BSA重排序的总体流程.png)
+GPU上对BSA重排序的总体流程
+
+BSA重排序算法使用GPU的主要优点是支持并行聚类和加速编码行向量之间的相似度计算.
+GPU中的单个线程块为每个簇执行相似行的分组, 因此, 多个线程块并行地为各自的簇对行进行聚类.
+如图(a)所示, 每个线程块持续计算代表性编码行向量,
+
+GPU实现的关键挑战在于, 所需的线程块数量是未知的, 在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术.
+CUDA动态并行允许在核函数内部调用新的内核, 并能够将新生成的内核与之前运行的内核并行执行.
+通过利用动态并行, 在当前线程块正在执行时, 调用一个新的内核, 通过添加一个新的线程块来生成一个新的簇.
+
+如图(b)所示, 基于相似阈值 $(\alpha)$, 第一个线程对行进行聚类, 形成第一个簇(Cluster 0).
+
+![BSA_clustering()kernel图示](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA_clustering()kernel图示.png)
+
+如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 相似, 则将 $\mathbf{\hat{E}^{cmp}}$ 分组到与
+$\mathbf{\hat{E}^{rep}}$ 相同的簇中.
+
+如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 不同, 则创建额外的线程块用以生成新簇.
+
+1. 图(b)-1: $\mathbf{\hat{E}^{cmp}}$ 称为新簇的代表性编码向量 $\mathbf{\hat{E}^{rep}}$.
+   然后新创建的第二个线程块按照升序依次将其自身的 $\mathbf{\hat{E}^{rep}}$ 与其他分散度高于 $\mathbf{\hat{E}^{rep}}$
+   的 $\mathbf{\hat{E}^{cmp}}$ 进行比较.
+2. 图(b)-2: 但是跳过与已分配到其他簇的任何 $\mathbf{\hat{E}^{cmp}}$ 的比较. 如果 $\mathbf{\hat{E}^{cmp}}$ 与
+   第二个簇的 $\mathbf{\hat{E}^{rep}}$ 不同,
+3. 图(b)-3: 当前内核会反复调用新内核, 以利用额外的线程块创建下一个簇:第三个簇(Cluster 2).
+4. 图(b)-4: 在对所有行进行聚类之后, 通过按每个簇内的分散度升序重新排列行索引, 生成存储关于排列行索引的信息P.
+
+算法2展示了BSA聚类核函数的伪代码, 它在GPU上执行BSA重排序.
+
+![算法2](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法2.png)
+
+BSA聚类核函数通过利用并行归约合动态并行性以及同步方案实现了高度的并行性.
+每个线程块负责形成一个簇并识别与簇的 $\mathbf{\hat{E}^{rep}}$ 相似的 $\mathbf{\hat{E}^{cmp}}$ 向量.
+核函数中, 使用共享内存来维护 $E^{rep}$, 因为他在每个线程块中经常被引用以计算相似度.
+通过适应CUDA编程指南中提供的`__nanosleep()` 函数来实现互斥锁和互斥解锁函数,
+以避免在将 $\mathbf{\hat{E}^{cmp}}$ 分配给另一个簇时出现同步问题, 从而跳过相似度的比较(第9-12行).
+在计算两个向量之间的加权Jaccard相似度时, 使用线程束的shuffle和共享内存进行并行归约操作,
+以获得 $\mathbf{\hat{E}^{rep}}$ 和$\mathbf{\hat{E}^{cmp}}$ 的范数值(第18行).
+
+- 如果确定 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 相似, 则分配 $\mathbf{\hat{E}^{cmp}}$ 的相应簇ID(cid),
+  并通过累加 $\mathbf{\hat{E}^{cmp}}$ 来动态更新 $\mathbf{\hat{E}^{rep}}$ 的值(第25-28行).
+- 否则采用动态并行方案, 当前线程块中的仅一个线程调用一个新内核, 使用一个线程块生成下一个簇(第30-33行).
+
+鉴于多个线程块同时执行以处理多个簇, 需要同步其他内核以防止不止一个线程块比较同一行的情况.
+因此当线程块分配其唯一的 $E^{rep}$ (第5行) 并依次将 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 进行比较时(
+第8-32行),
+使用行互斥锁(正对行的互斥锁集合)以及互斥函数. 此块, 互斥锁的使用确保每个簇只能使用一个线程块, 从而避免多个线程同时锁定导致出现的同步问题.
+
+---
+
+### 密集矩阵块的确定
+
+重排序算法是基于块稀疏模式对行进行排序, 排序后的稀疏矩阵可能呈现出一种块结构, 非零元素集中在特定的列块中的多行内.
+但也有可能存在少量非零元素任然不规则的放置在排序好的矩阵中.
+为了避免在Tensor Cores上处理这些稀疏分布的非零元素, 将重新排序后的矩阵中的密集块和稀疏剩余分开.
+将大小为M×K的重新排序矩阵划分为 $M / \tau \times K / T$ 个大小为 $\tau \times \tau$ 的块,
+并根据非零密度阈值 $\delta$ 来确定大小为 $\tau \times \tau$ 的块是否为稠密块.
+由于调整 $\delta$ 的值与在Tensor Cores上处理密集块的数量密切相关, 根据不同的稀疏矩阵的性能明智地选择最优的 $\delta$ 值.
+
+---
+
+### 压缩Blocked-ELL格式以降低复杂性.
+
+在对矩阵进行重新排序后, 重新排序后的矩阵 $S_R$ 被分为稠密块 $S_d$ 和稀疏剩余 $S_s$. 为了同时使用Tensor Cores处理 $S_d$
+中的密集块,
+采用NVIDIA的cuSPARSE Block-SpMM, 使用Blocked-ELL格式和 'cusparseSpMM()' 函数间接利用Tensor Cores进行并行块矩阵乘法.
+$S_D$ 中的密集块元素是以Block-edELL格式储存, 为了匹配重新排序期间使用的列块大小 $\tau$, 密集块大小定为 $\tau\times\tau$.
+
+因为最初将所有空行重新排列到排序后的矩阵的前面, 能够进一步压缩Blocked-ELL格式.
+将cuSPARSE Block-SpMM的起始指针配置为从Blocked-ELL格式中第一个非零块的出现开始使用Tensor cores进行计算.
+
+对于稀疏剩余 $S_s$ 中的非零元素, 使用CSR格式储存, 以便在CUDA核心上使用NVIDIA的cuSPARSE进行SpMM操作.
+
+$S_p$ 和 $S_s$ 分别独立用于执行SpMM操作, 最后将两个结果合并生成最终的输出矩阵 $O$.
+
+---
+
+## 实验评估
+
+- CPU: 12th Gen Intel(R) Core(TM) i7-12700 (12个物理核心)
+- GPU: NVIDIA RTX 3080 GPU (69个安培SM, 计算能力为8.6, 10GB显存, 带宽为760GB/s).
+- NVCC 12.1编译CUDA, 采用O3优化. C++11标准.
+
+- 数据集:
+    - Deep Learning Matrix Collection(DLMC)的稀疏矩阵, 稀疏度范围从50%到90%.
+    - 通过应用各种剪枝技术到Transformer和ResNet-50模型中生成的2587个非结构化稀疏矩阵.
+        - Transformer稀疏矩阵的行数(M)从512到33288不等
+        - RenNet-50稀疏矩阵的行数(M)从64到2048不等
+    - SuiteSparse矩阵集合的不同大小的稀疏矩阵, 主要包含稀疏度超过90%的稀疏矩阵
+
+---
+
+### 性能评估
+
+![从DLMC收集的稀疏矩阵上的SpMM的性能比较](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/从DLMC收集的稀疏矩阵上的SpMM的性能比较.png)
+从DLMC收集的稀疏矩阵上的SpMM的性能比较. X轴: 稀疏矩阵的稀疏度; Y 轴：以 cuBLAS 为基准并结合 Tensor core
+进行归一化处理后的加速比（黑色虚线水平线). 每个方框中的黑线表示中位加速倍数.
+
+上图展示了BSA-SpMM与其他SpMM实现之间的加速比较, 其中以cuBLAS为基准, 用黑色虚线表示. 所有实验结果都是基于10次不同的执行取平均值得出的.
+在BSA-SpMM中, 使用固定的分块大小$(\tau)$为32, 并为每个实验选择了最佳的分块密度阈值$(\delta)$.
+如图所示, BSA-SpMM实现了平均2.01倍的加速, 超过了cuBLAS.
+
+实验表明, 当使用具有50%到70稀疏性的稀疏矩阵时, BSA-SpMM在所有稀疏矩阵上的表现始终优于其他SpMM实现. 然而, 当保持更高的稀疏性时,
+识别不规则的非零模式并利用Tensor Cores进行SpMM就变得更加困难. 由于BSA-SpMM通过cuSPARSE库处理重新排序矩阵中的稀疏剩余,
+当稀疏度达到90%时,
+在不重新排序的情况下, cuSPARSE的方法会收敛. 然而, 对于超过90%稀疏度的稀疏矩阵, BSA-SpMM实现了平均1.98倍的加速,
+超过了cuSPARSE.
+
+---
+
+## 总结
+
+由于SpMM中非零元素的不规则分布和产生的内存访问模式, 使用非结构化稀疏矩阵进行SpMM具有挑战性. 论文中, 开发了一种新颖的重排序算法,
+通过在行聚类过程中考虑块稀疏模式来增强SpMM的数据局部性. 并且开发了一种高效地GPU实现, 动态并行地聚类行. 最终实验结果表明,
+BSA-SpMM与现有的最先进SpMM实现相比, 获得了最高21.99倍的加速.
+
+论文链接: [Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](https://link.springer.com/chapter/10.1007/978-3-031-69583-4_1)
+
+开源链接: [BSA-SpMM_EURO-PAR-2024](https://github.com/dleunji/BSA-SpMM_EURO-PAR-2024)
+
+---。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://CX9898.github.io/post/gao-xiao-de-kuai-xi-shu-gan-zhi-%28BSA%29-ju-zhen-zhong-pai-xu-fang-fa-yi-chong-fen-li-yong-zhang-liang-he-xin-jia-su-xi-shu-ju-zhen---duo-xiang-liang-cheng-fa.html">
+<meta property="og:image" content="https://cx9898.github.io/img/CX.jpg">
+<title>高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</h1>
+<div class="title-right">
+    <a href="https://CX9898.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/CX9898/CX9898.github.io/issues/7" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E5%B0%81%E9%9D%A2.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E5%B0%81%E9%9D%A2.png" alt="Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication" style="max-width: 100%;"></a></p>
+<h1>[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</h1>
+<p><strong>Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector<br>
+Multiplication</strong></p>
+<p>论文于2024年发表于Euro-Par 2024会议(30th International European Conference on Parallel and Distributed Computing).</p>
+<p>稀疏矩阵-多向量乘法(SpMM)又称为稀疏矩阵-稠密矩阵乘法是深度学习模型和科学计算应用中的关键内核.<br>
+然而, 由于非零元素的不规则分布和其产生的不规则内存访问模式, 实现高性能的SpMM具有挑战性.<br>
+在论文中, 提出了一种新颖的稀疏矩阵重排序算法, 该算法考虑了块稀疏性, 以增强Tensor Cores上SpMM的数据局部性.<br>
+对大量稀疏矩阵的实验结果表明了重排序算法的有效性以及利用Tensor Cores进行SpMM的好处.</p>
+<p>文章链接: <a href="https://zhuanlan.zhihu.com/p/14997232589" rel="nofollow">[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</a></p>
+<hr>
+<h2>引言</h2>
+<p>几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的矩阵-矩阵乘法.<br>
+因此, 专门化的加速器, 如TPU(Tensor Processing Unit)和NVIDIA的Tensor Cores, 最近被引入来加速稠密矩阵-稠密矩阵乘法(DMM).</p>
+<p>SpMM核心在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.<br>
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.</p>
+<p>之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,<br>
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法.</p>
+<p>论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 用于在GPU上高效的重排不规则稀疏矩阵中的行,<br>
+旨在提取高密度块并明智地利用Tensor Cores进行SpMM.</p>
+<p>为了克服基于列索引的聚类问题, 论文的矩阵重排算法首先将行划分为多个列块, 以识别块级稀疏模式, 以识别块稀疏模式.<br>
+为了增强SpMM的数据局部性, 在行聚类过程中, BSA重排算法不仅考虑了非零列块的位置, 还考虑每个列块中非零项的数量.<br>
+为了有效地测量编码行向量之间的相似度, 采用考虑向量实际的加权Jaccard相似度.</p>
+<blockquote>
+<p>加权Jaccard相似度:</p>
+</blockquote>
+<p>在对行进行重排序后, 根据密度阈值将重排序后的矩阵拆分为稠密块和稀疏剩余.<br>
+采用Blocked-Ellpack格式来储存稠密块中的元素, 并利用NVIDIA的cuSPARSE Block-SpMM来加速运算稠密矩阵.<br>
+对于稀疏剩余部分, 使用压缩稀疏行(CSR)格式来储存, 并在常规CUDA核心上使用NVIDIA的cuPARSE进行SpMM操作.</p>
+<blockquote>
+<p>Blocked-Ellpack格式: Blocked-Ellpack格式是ELLPACK格式的一个变种, 将矩阵划分为多个块, 每个块内部使用ELLPACK格式储存.<br>
+ELLPACK格式是一种储存稀疏矩阵的压缩格式, 它将每一行的非零元素按列索引排序后储存.</p>
+</blockquote>
+<p>使用来自深度学习矩阵集合的2586个稀疏矩阵进行广泛的比较和评估,<br>
+结果表明,论文的并行SpMM实现(称为BSA-SpMM)比最先进的替代方案实现了高达21.99倍的加速.</p>
+<hr>
+<h2>背景及相关工作</h2>
+<h3>稀疏矩阵-多向量乘法(SpMM)</h3>
+<p>几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的稀疏矩阵-矩阵乘法(SpMM).<br>
+SpMM是将M × K的稀疏输入矩阵S与大小为K × N的稠密输入矩阵D相乘, 生成大小为M×N的稠密输出矩阵O. 即O = S × D.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/SpMM.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/SpMM.png" alt="SpMM" style="max-width: 100%;"></a><br>
+SpMM</p>
+<p>SpMM在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.<br>
+这种不规则的内存访问导致GPU上全局内存的带宽的低效使用和缓存命中率降低. 其次, 稀疏矩阵中非零元素的不规则分布导致负载不平衡问题和GPU上可利用的并行性的降低.</p>
+<p>稀疏矩阵可以表示为基于块的稀疏格式, 例如Blocked-Ellpack格式和Variable Block Row(VBR)格式.</p>
+<p>Blocked-Ellpack格式的主要优势在于它可以有效利用Tensor Cores.<br>
+特别是使用Blocked-Ellpack格式时, 可以通过使用NVIDIA的cuSPARSE库的 <code class="notranslate">cusparseSpMM()</code> 函数来利用Tensor Cores进行并行块矩阵乘法.</p>
+<p>VBR格式与Blocked-Ellpack格式不同的是它会储存不同大小的非零块.<br>
+而NVIDIA的cuBLAS库的 <code class="notranslate">cublasGemmEx()</code> 函数支持可变的矩阵大小, 可以通过这个函数以利用Tensor Cores进行稀疏矩阵-稠密矩阵乘法.</p>
+<hr>
+<h2>带有Tensor Cores的图形处理器(GPU)</h2>
+<p>Tensor Cores是NVIDIA开发的一种专门用于加速矩阵-矩阵乘法和累加的硬件单元.<br>
+在Volta架构中首次引入, 并在后续的Ampere架构和Hopper架构中得到了进一步的优化.</p>
+<p>为了高效执行矩阵-矩阵乘法和累加操作, 通过32个线程一组的线程束(warp)协作并行处理矩阵中的子矩阵块. 与标准单精度(FP32)<br>
+浮点格式相比, Tensor Cores通过利用低精度浮点格式(例如FP16), 实现了更高的性能和更低的内存需求.</p>
+<blockquote>
+<p>关于Tensor core的具体内容可参考另一篇文章: <a href="https://zhuanlan.zhihu.com/p/706494789" rel="nofollow">CUDA 编程使用 Tensor core 详解</a></p>
+</blockquote>
+<hr>
+<h2>用Tensor Core实现SpMM的挑战</h2>
+<p>Tensor Core 是专为高性能矩阵计算设计的硬件加速单元, 特别擅长处理密集矩阵乘法. 然而，SpMM中稀疏矩阵的计算模式难以直接适配<br>
+Tensor Core 的工作方式, 需要优化数据格式和计算流程来高效利用硬件潜力.</p>
+<p>Tensor Core用于计算两个矩阵块的乘法和累加, 而直接在Tensor Core上处理SpMM中会因为每个块中计算的有效数据数量较少而导致资源的浪费.<br>
+例如, 下面这个分块矩阵只有两个非零元素, 而Tensor core是一起计算整个矩阵块, 经过Tensor core计算后只有两个数据是有效数据.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E4%B8%A4%E4%B8%AA%E9%9D%9E%E9%9B%B6%E5%85%83%E7%B4%A0%E7%9A%84%E7%9F%A9%E9%98%B5%E5%9D%97.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E4%B8%A4%E4%B8%AA%E9%9D%9E%E9%9B%B6%E5%85%83%E7%B4%A0%E7%9A%84%E7%9F%A9%E9%98%B5%E5%9D%97.png" alt="两个非零元素的分块矩阵" style="max-width: 100%;"></a><br>
+4×4的矩阵块中只有两个非零元素</p>
+<p>之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,<br>
+从重新排序矩阵中获得的密集块可以用来与右乘矩阵进行稠密矩阵-稠密矩阵乘法. 核心思想是将原稀疏矩阵的元素打乱顺序,<br>
+将具有同一行但不同列的元素或同一列但不同行的元素集合在一起, 以形成密集块(但也有可能会有零元素).</p>
+<p>通过重排序稀疏矩阵的数据, 根据列密度对每个行面板的列或对每个列面板的行进行重排, 形成密集分块. 能够有效的增加资源利用率.<br>
+例如, 输入稀疏矩阵中某一块数据拥有下图这种性质.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E8%81%9A%E7%B1%BB%E7%9A%84%E4%BE%8B%E5%AD%90.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E8%81%9A%E7%B1%BB%E7%9A%84%E4%BE%8B%E5%AD%90.png" alt="稀疏矩阵聚类的例子" style="max-width: 100%;"></a><br>
+稀疏矩阵聚类的例子</p>
+<p>左稀疏块的数据拥有所在同一行或同一列的属性, 可以将其聚类为右边的密集块, 保留其所在原始位置的信息. 通过将类似这样可以聚类的数据聚合成密集块,<br>
+再通过Tensor core进行计算, 能够大大加快运算时间.</p>
+<p><strong>论文的主要目标是开发一种新颖的加速块稀疏感知(Block-Sparsity-Aware)重排算法. 与以上例子不同的是只针对每行进行比较和重组.<br>
+块稀疏感知(Block-Sparsity-Aware)重排算法在GPU上高效的重排不规则稀疏矩阵中的行, 旨在提取高密度块并明智地利用Tensor<br>
+Cores进行SpMM.</strong></p>
+<hr>
+<h2>关于稀疏矩阵重排以优化稀疏矩阵乘法(SpMM)的相关工作</h2>
+<p>为了增强SpMM的数据局部性, 最近已经开发除了集中稀疏重排序和压缩算法.<br>
+以往基于利用Tensor Cores, 为稀疏矩阵重排序的努力大致可以分为两类.</p>
+<p>Hong等人提出了一种自适应稀疏分块(ASpT)方法, 首先将稀疏矩阵划分为多个行面板, 其中每个行面板由连续的行组成.<br>
+然后, 根据列密度对每个行面板的列进行重排, 形成密集分块.<br>
+Jiang等人进一步扩展了ASpT方法, 引入了一种行重排技术, 称为ASpT-RR.<br>
+ASpT-RR不是直接将稀疏矩阵的连续行分为行面板, 而是首先对行进行重排, 将相似的行分组到同一个行面板中.<br>
+但是当非零元素的列索引广泛分散时, 基于非零元素的列索引对行进行重排可能导致聚类失败.<br>
+Gale等人提出了一种行交换技术(称为Sputnik), 根据每行的非零元素数量重新排列行, 以实现GPU上常规SM中的负载均衡.</p>
+<blockquote>
+<p>聚类(clustering)是指将具有相似特征的元素放在一起, 以提高缓存利用率和计算效率. 聚类失败意味着由于非零元素的列索引过于分散,<br>
+无法通过重排来形成连续的块, 从而无法利用处理器的向量化指令或其他优化手段来提高性能, 可能导致计算效率降低.</p>
+</blockquote>
+<p>Labini等人提出了一种称为1-SA的行重排序技术, 该技术使用一种基于Saad算法的变体, 通过一维分块对行进行重排序.<br>
+1-SA将行划分为多个列分区, 并基于非零列分区模式的Jaccard相似度对行进行聚类.<br>
+使用VBR格式储存包含非零元素的变大小块, 使用NVIDIA的 <code class="notranslate">cublasGemmEx()</code> 函数利用Tensor Cores将这些块与右乘稠密矩阵相乘.<br>
+但是1-SA方法重新排序的矩阵中稀疏填充的块即使只包含一个非零元素, 也是以VBR格式储存, 然后传递给Tensor Cores进行计算.<br>
+Tensor Core上处理这些稀疏块会因为每个块中填充的零数量较多而导致利用率不足.<br>
+Yuke等人提出了一种稀疏图转换方案(称为TC-GNN), 将稀疏矩阵的行面板中的非零元素压缩, 以利用Tensor Cores进行SpMM操作.<br>
+但是在对行面板中非零元素进行压缩时, TC-GNN忽略了考虑各列中非零元素数量的变化, 并且没有比较行之间的稀疏模式.</p>
+<hr>
+<h2>BSA-SpMM: 块稀疏感知矩阵乘法</h2>
+<p>在本节中, 首先描述BSA-SpMM的概述. 然后讲解在比较行过程中使用的方法, 最后详细介绍块稀疏感知(BSA)重排序算法. 稀疏感知(BSA)<br>
+重排序算法的核心思想是将原稀疏矩阵的每一行都拆分开, 重新排列顺序(记录原行ID), 将相似的行排列在一起, 以形成密集块.<br>
+密集块通过Tensor Core核心计算, 剩余部分利用CUDA核心计算.</p>
+<hr>
+<h3>BSA-SpMM概述</h3>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/BSA-SpMM%E6%A6%82%E8%BF%B0%E5%9B%BE.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/BSA-SpMM%E6%A6%82%E8%BF%B0%E5%9B%BE.png" alt="BSA-SpMM概述图" style="max-width: 100%;"></a><br>
+BSA-SpMM概述图</p>
+<p>BSA-SpMM的总流程如图所示, 将输入稀疏矩阵S进行BSA重排, 生成的重排稀疏矩阵$S_R$进行分块(Tiling),<br>
+根据分块后的块(Tiled)的密度将块分为两类: <strong>稠密块$S_d$和稀疏剩余$S_s$</strong>.</p>
+<p>将稠密块Sd以Blocked-ELL格式储存, 在Tensor Cores上与稠密矩阵D进行矩阵乘法运算.<br>
+将稀疏剩余Ss以CSR格式储存, 在常规CUDA核心上与稠密矩阵D进行矩阵乘法运算.</p>
+<p>最终将两个结果合并后生成最终的输出矩阵O.</p>
+<hr>
+<h3>离散度(Dispersions)</h3>
+<p>在重排序过程前, 通过计算每行中每个列块的非零元素数量, 将其一一储存以生成一组编码向量, 称为Encodings.<br>
+为每一行生成一组离散度, 称为Dispersions. 离散度是基于非零列块的数量和零填充的数量来定义的,<br>
+表示非零元素在行中的分散程度: $\tau\times nnzb+zf$, 其中 $\tau$ 表示每行中列块的大小, $nnzb$ 表示具有非零元素的列块的数量,<br>
+$zf$ 表示一行中具有非零元素的列块的零填充的数量.<br>
+<strong>一行具有高离散度的话, 意味着其非零元素高度分散在多个列块中.</strong><br>
+<strong>相反, 当一行具有低离散度时, 非零元素主要集中在特定的列块中.</strong><br>
+Encodings和Dispersions均通过CUDA内核中的并行归约计算.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%A6%BB%E6%95%A3%E5%BA%A6%E8%AE%A1%E7%AE%97%E7%9A%84%E4%B8%A4%E8%A1%8C%E7%A4%BA%E4%BE%8B.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%A6%BB%E6%95%A3%E5%BA%A6%E8%AE%A1%E7%AE%97%E7%9A%84%E4%B8%A4%E8%A1%8C%E7%A4%BA%E4%BE%8B.png" alt="离散度计算的两行示例" style="max-width: 100%;"></a><br>
+离散度计算的两行示例</p>
+<p><strong>离散度有助于识别和聚类具有相似块稀疏性的行, 从而优化数据局部性. 根据离散度(Dispersions)将行索引按升序排序, 可以提高聚类的效率.<br>
+具有相似块稀疏性的行(即零元素在列块中的分布相似)更有可能被聚类到一起.</strong> 排序结果储存在ascending中.</p>
+<p>具体来说, 排序是为了当一个行作为候选行被分组到某个簇中时, 如果比另一个具有更多离散非零元素的行更分散, 则优先考虑.<br>
+空行的离散度为0, 分配一个簇ID为-1以排除所有空行.</p>
+<blockquote>
+<p>在数据挖掘和机器学习领域, 簇指的是数据点的集合, 这些数据点在某些特征或属性上彼此相似, 而与其他簇的数据点不同.<br>
+聚类分析(Clustering)是一种将数据集中的对象分组的算法, 目的是使同一个簇内的对象相似度高, 而不同簇之间的对象相似度低.</p>
+</blockquote>
+<hr>
+<h3>加权Jaccard相似度</h3>
+<p><strong>论文提出的"加权Jaccard相似度(weighted Jaccard similarity)"是"Jaccard相似度"的一种变体. 用于衡量稀疏矩阵中行之间的相似性,<br>
+以便在重排序过程中将相似行聚集在一起形成密集块.</strong></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E5%85%AC%E5%BC%8F1.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E5%85%AC%E5%BC%8F1.png" alt="公式1" style="max-width: 100%;"></a><br>
+公式1:加权jaccard相似度</p>
+<p>$J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i^{cmp})}{\sum_i\max(E_i^{rep},E_i^{cmp})}$</p>
+<p>公式1中, $\mathbf{\hat{E}^{rep}}$ 和 $\mathbf{\hat{E}^{cmp}}$ 表示两个编码的行向量, 每个向量都经过归一化处理,<br>
+以减轻在测量两个向量之间的相似度时向量大小的影响.$E_i^{rep}$ 和 $E_i^{cmp}$ 分别表示 $\mathbf{\hat{E}^{rep}}$<br>
+和 $\mathbf{\hat{E}^{cmp}}$ 中第i个元素. 将$E^{rep}$和$E^{cmp}$视为未归一化的向量, 将 $\mathbf{\hat{E}^{rep}}$<br>
+和 $\mathbf{\hat{E}^{cmp}}$ 视为归一化的向量.</p>
+<blockquote>
+<p>编码行向量: 将矩阵的一行划分为大小为 $\tau$ 的列块, 记录每个块中非零元素的数量.</p>
+</blockquote>
+<p><strong>用上节中离散度计算的两行例子来计算加权Jaccard相似度:</strong></p>
+<ul>
+<li>
+$E^{rep}$ : [8, 10, 18, 0, 3]</li>
+<li>
+$E^{cmp}$ : [1, 20, 0, 14, 0]</li>
+</ul>
+<ol>
+<li>先对其进行归一化:
+<ul>
+<li>norm rep = $\sqrt{8^{2} + 10^{2} + 18^{2} + 0^{2} + 3^{2}}\approx22.3$
+</li>
+<li>norm cmp = $\sqrt{1^{2} + 20^{2} + 0^{2} + 14^{2} + 0^{2}}\approx24.4$
+</li>
+<li>
+$\mathbf{\hat{E}^{rep}}$ : [0.35, 0.45, 0.81, 0, 0.13]</li>
+<li>
+$\mathbf{\hat{E}^{cmp}}$ : [0.04, 0.89, 0, 0.63, 0]</li>
+</ul>
+</li>
+<li>对每一对数据, 计算它们的最大值和最小值:
+<ul>
+<li>对于第一对 (0.35, 0.04): 最小值是 0.04, 最大值是 0.35</li>
+<li>对于第二对 (0.45, 0.89): 最小值是 0.45, 最大值是 0.89</li>
+<li>对于第三对 (0.81, 0): 最小值是 0, 最大值是 0.81</li>
+<li>对于第四对 (0, 0.63): 最小值是 0, 最大值是 0.63</li>
+<li>对于第五对 (0.013, 0): 最小值是 0, 最大值是 0.013</li>
+</ul>
+</li>
+<li>计算所有最小值和最大值的总和:
+<ul>
+<li>
+$\sum_i\min(E_i^{rep},E_i^{cmp})$ = 0.04 + 0.45 + 0 + 0 + 0 = 0.49</li>
+<li>
+$\sum_i\max(E_i^{rep},E_i^{cmp})$ = 0.35 + 0.89 + 0.81 + 0.63 + 0.013 = 2.692</li>
+</ul>
+</li>
+<li>将最小值总和除以最大值总和得到$J$值:
+<ul>
+<li>
+$J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})$ = $\frac{0.49}{2.692}\approx0.1821$
+</li>
+</ul>
+</li>
+</ol>
+<p>这个$J$值表示两行之间的相似度. 值越接近1, 表示相似度越高. 在这个例子中, $J$值约为0.1821, 表明两行之间的相似度较低.<br>
+<strong>要确定两行是否足够相似, 需要确定一个相似阈值$(\alpha)$, 超过这个阈值则将其认为是相似的, 低于这个阈值认为是不相似的.</strong></p>
+<hr>
+<h3>BSA重排序中的相似性度量</h3>
+<p>生成包含大量非零元素的密集块对于充分利用Tensor core 进行SpMM至关重要.<br>
+为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类. 此后, 将每行的非零列块表示为包含非零元素的列块.<br>
+在重排序矩阵后提取密集块时, 使用与列块大小相同的密集块大小来增强数据局部性.</p>
+<hr>
+<h3>GPU加速的BSA重排序算法</h3>
+<p>生成包含大量非零元素的密集块对于充分利用Tensor core进行SpMM至关重要. 为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类.<br>
+算法1展示了host端的整个BSA重排序过程的伪代码.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%AE%97%E6%B3%951.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%AE%97%E6%B3%951.png" alt="算法1" style="max-width: 100%;"></a><br>
+算法1:整个BSA重排序过程的伪代码</p>
+<p>算法第4-9行: 遍历矩阵所有行索引, 如果当前行的离散度为0, 则分配一个簇ID为-1, 以排除所有空行.</p>
+<p>第11行 <code class="notranslate">BSA_clustering()</code> 为CUDA核函数, 用于比较各个行来产生簇. GPU实现的关键挑战在于, 所需的线程块数量是未知的,<br>
+在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术. CUDA动态并行允许在核函数内部调用新的内核,<br>
+并能够将新生成的内核与之前运行的内核并行执行. 通过利用动态并行, 在当前线程块正在执行时, 如果产生了新的簇, 则调用一个新的内核,<br>
+通过添加一个新的线程块来生成新的簇. 所以在11行最初调用CUDA内核时只启动一个线程块, 其他内核将在核函数内部使用CUDA动态并行技术调用.<br>
+最后通过将具有相同簇的行聚集在一起, 保持相同簇内的升序, 得到最终的排序行索引P.</p>
+<blockquote>
+<p>CUDA动态并行技术(CUDA Dynamic Parallelism)是NVIDIA在其CUDA编程模型中引入的一项特性, 它允许在GPU上运行的内核(kernel)<br>
+直接在设备端启动新的内核. 类似于递归.</p>
+</blockquote>
+<p>下图展示了在GPU上的BSA重排序总流程.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/GPU%E4%B8%8A%E5%AF%B9BSA%E9%87%8D%E6%8E%92%E5%BA%8F%E7%9A%84%E6%80%BB%E4%BD%93%E6%B5%81%E7%A8%8B.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/GPU%E4%B8%8A%E5%AF%B9BSA%E9%87%8D%E6%8E%92%E5%BA%8F%E7%9A%84%E6%80%BB%E4%BD%93%E6%B5%81%E7%A8%8B.png" alt="/img.png" style="max-width: 100%;"></a><br>
+GPU上对BSA重排序的总体流程</p>
+<p>BSA重排序算法使用GPU的主要优点是支持并行聚类和加速编码行向量之间的相似度计算.<br>
+GPU中的单个线程块为每个簇执行相似行的分组, 因此, 多个线程块并行地为各自的簇对行进行聚类.<br>
+如图(a)所示, 每个线程块持续计算代表性编码行向量,</p>
+<p>GPU实现的关键挑战在于, 所需的线程块数量是未知的, 在聚类开始之间无法确定簇的数量. 为了解决这个问题, 使用CUDA动态并行技术.<br>
+CUDA动态并行允许在核函数内部调用新的内核, 并能够将新生成的内核与之前运行的内核并行执行.<br>
+通过利用动态并行, 在当前线程块正在执行时, 调用一个新的内核, 通过添加一个新的线程块来生成一个新的簇.</p>
+<p>如图(b)所示, 基于相似阈值 $(\alpha)$, 第一个线程对行进行聚类, 形成第一个簇(Cluster 0).</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/BSA_clustering()kernel%E5%9B%BE%E7%A4%BA.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/BSA_clustering()kernel%E5%9B%BE%E7%A4%BA.png" alt="BSA_clustering()kernel图示" style="max-width: 100%;"></a></p>
+<p>如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 相似, 则将 $\mathbf{\hat{E}^{cmp}}$ 分组到与<br>
+$\mathbf{\hat{E}^{rep}}$ 相同的簇中.</p>
+<p>如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 不同, 则创建额外的线程块用以生成新簇.</p>
+<ol>
+<li>图(b)-1: $\mathbf{\hat{E}^{cmp}}$ 称为新簇的代表性编码向量 $\mathbf{\hat{E}^{rep}}$.<br>
+然后新创建的第二个线程块按照升序依次将其自身的 $\mathbf{\hat{E}^{rep}}$ 与其他分散度高于 $\mathbf{\hat{E}^{rep}}$<br>
+的 $\mathbf{\hat{E}^{cmp}}$ 进行比较.</li>
+<li>图(b)-2: 但是跳过与已分配到其他簇的任何 $\mathbf{\hat{E}^{cmp}}$ 的比较. 如果 $\mathbf{\hat{E}^{cmp}}$ 与<br>
+第二个簇的 $\mathbf{\hat{E}^{rep}}$ 不同,</li>
+<li>图(b)-3: 当前内核会反复调用新内核, 以利用额外的线程块创建下一个簇:第三个簇(Cluster 2).</li>
+<li>图(b)-4: 在对所有行进行聚类之后, 通过按每个簇内的分散度升序重新排列行索引, 生成存储关于排列行索引的信息P.</li>
+</ol>
+<p>算法2展示了BSA聚类核函数的伪代码, 它在GPU上执行BSA重排序.</p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%AE%97%E6%B3%952.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E7%AE%97%E6%B3%952.png" alt="算法2" style="max-width: 100%;"></a></p>
+<p>BSA聚类核函数通过利用并行归约合动态并行性以及同步方案实现了高度的并行性.<br>
+每个线程块负责形成一个簇并识别与簇的 $\mathbf{\hat{E}^{rep}}$ 相似的 $\mathbf{\hat{E}^{cmp}}$ 向量.<br>
+核函数中, 使用共享内存来维护 $E^{rep}$, 因为他在每个线程块中经常被引用以计算相似度.<br>
+通过适应CUDA编程指南中提供的<code class="notranslate">__nanosleep()</code> 函数来实现互斥锁和互斥解锁函数,<br>
+以避免在将 $\mathbf{\hat{E}^{cmp}}$ 分配给另一个簇时出现同步问题, 从而跳过相似度的比较(第9-12行).<br>
+在计算两个向量之间的加权Jaccard相似度时, 使用线程束的shuffle和共享内存进行并行归约操作,<br>
+以获得 $\mathbf{\hat{E}^{rep}}$ 和$\mathbf{\hat{E}^{cmp}}$ 的范数值(第18行).</p>
+<ul>
+<li>如果确定 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 相似, 则分配 $\mathbf{\hat{E}^{cmp}}$ 的相应簇ID(cid),<br>
+并通过累加 $\mathbf{\hat{E}^{cmp}}$ 来动态更新 $\mathbf{\hat{E}^{rep}}$ 的值(第25-28行).</li>
+<li>否则采用动态并行方案, 当前线程块中的仅一个线程调用一个新内核, 使用一个线程块生成下一个簇(第30-33行).</li>
+</ul>
+<p>鉴于多个线程块同时执行以处理多个簇, 需要同步其他内核以防止不止一个线程块比较同一行的情况.<br>
+因此当线程块分配其唯一的 $E^{rep}$ (第5行) 并依次将 $\mathbf{\hat{E}^{cmp}}$ 与 $\mathbf{\hat{E}^{rep}}$ 进行比较时(<br>
+第8-32行),<br>
+使用行互斥锁(正对行的互斥锁集合)以及互斥函数. 此块, 互斥锁的使用确保每个簇只能使用一个线程块, 从而避免多个线程同时锁定导致出现的同步问题.</p>
+<hr>
+<h3>密集矩阵块的确定</h3>
+<p>重排序算法是基于块稀疏模式对行进行排序, 排序后的稀疏矩阵可能呈现出一种块结构, 非零元素集中在特定的列块中的多行内.<br>
+但也有可能存在少量非零元素任然不规则的放置在排序好的矩阵中.<br>
+为了避免在Tensor Cores上处理这些稀疏分布的非零元素, 将重新排序后的矩阵中的密集块和稀疏剩余分开.<br>
+将大小为M×K的重新排序矩阵划分为 $M / \tau \times K / T$ 个大小为 $\tau \times \tau$ 的块,<br>
+并根据非零密度阈值 $\delta$ 来确定大小为 $\tau \times \tau$ 的块是否为稠密块.<br>
+由于调整 $\delta$ 的值与在Tensor Cores上处理密集块的数量密切相关, 根据不同的稀疏矩阵的性能明智地选择最优的 $\delta$ 值.</p>
+<hr>
+<h3>压缩Blocked-ELL格式以降低复杂性.</h3>
+<p>在对矩阵进行重新排序后, 重新排序后的矩阵 $S_R$ 被分为稠密块 $S_d$ 和稀疏剩余 $S_s$. 为了同时使用Tensor Cores处理 $S_d$<br>
+中的密集块,<br>
+采用NVIDIA的cuSPARSE Block-SpMM, 使用Blocked-ELL格式和 'cusparseSpMM()' 函数间接利用Tensor Cores进行并行块矩阵乘法.<br>
+$S_D$ 中的密集块元素是以Block-edELL格式储存, 为了匹配重新排序期间使用的列块大小 $\tau$, 密集块大小定为 $\tau\times\tau$.</p>
+<p>因为最初将所有空行重新排列到排序后的矩阵的前面, 能够进一步压缩Blocked-ELL格式.<br>
+将cuSPARSE Block-SpMM的起始指针配置为从Blocked-ELL格式中第一个非零块的出现开始使用Tensor cores进行计算.</p>
+<p>对于稀疏剩余 $S_s$ 中的非零元素, 使用CSR格式储存, 以便在CUDA核心上使用NVIDIA的cuSPARSE进行SpMM操作.</p>
+<p>$S_p$ 和 $S_s$ 分别独立用于执行SpMM操作, 最后将两个结果合并生成最终的输出矩阵 $O$.</p>
+<hr>
+<h2>实验评估</h2>
+<ul>
+<li>
+<p>CPU: 12th Gen Intel(R) Core(TM) i7-12700 (12个物理核心)</p>
+</li>
+<li>
+<p>GPU: NVIDIA RTX 3080 GPU (69个安培SM, 计算能力为8.6, 10GB显存, 带宽为760GB/s).</p>
+</li>
+<li>
+<p>NVCC 12.1编译CUDA, 采用O3优化. C++11标准.</p>
+</li>
+<li>
+<p>数据集:</p>
+<ul>
+<li>Deep Learning Matrix Collection(DLMC)的稀疏矩阵, 稀疏度范围从50%到90%.</li>
+<li>通过应用各种剪枝技术到Transformer和ResNet-50模型中生成的2587个非结构化稀疏矩阵.
+<ul>
+<li>Transformer稀疏矩阵的行数(M)从512到33288不等</li>
+<li>RenNet-50稀疏矩阵的行数(M)从64到2048不等</li>
+</ul>
+</li>
+<li>SuiteSparse矩阵集合的不同大小的稀疏矩阵, 主要包含稀疏度超过90%的稀疏矩阵</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h3>性能评估</h3>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E4%BB%8EDLMC%E6%94%B6%E9%9B%86%E7%9A%84%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B8%8A%E7%9A%84SpMM%E7%9A%84%E6%80%A7%E8%83%BD%E6%AF%94%E8%BE%83.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E9%AB%98%E6%95%88%E7%9A%84%E5%9D%97%E7%A8%80%E7%96%8F%E6%84%9F%E7%9F%A5(BSA)%E7%9F%A9%E9%98%B5%E9%87%8D%E6%8E%92%E5%BA%8F%E6%96%B9%E6%B3%95%E4%BB%A5%E5%85%85%E5%88%86%E5%88%A9%E7%94%A8%E5%BC%A0%E9%87%8F%E6%A0%B8%E5%BF%83%E5%8A%A0%E9%80%9F%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5-%E5%A4%9A%E5%90%91%E9%87%8F%E4%B9%98%E6%B3%95/%E4%BB%8EDLMC%E6%94%B6%E9%9B%86%E7%9A%84%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B8%8A%E7%9A%84SpMM%E7%9A%84%E6%80%A7%E8%83%BD%E6%AF%94%E8%BE%83.png" alt="从DLMC收集的稀疏矩阵上的SpMM的性能比较" style="max-width: 100%;"></a><br>
+从DLMC收集的稀疏矩阵上的SpMM的性能比较. X轴: 稀疏矩阵的稀疏度; Y 轴：以 cuBLAS 为基准并结合 Tensor core<br>
+进行归一化处理后的加速比（黑色虚线水平线). 每个方框中的黑线表示中位加速倍数.</p>
+<p>上图展示了BSA-SpMM与其他SpMM实现之间的加速比较, 其中以cuBLAS为基准, 用黑色虚线表示. 所有实验结果都是基于10次不同的执行取平均值得出的.<br>
+在BSA-SpMM中, 使用固定的分块大小$(\tau)$为32, 并为每个实验选择了最佳的分块密度阈值$(\delta)$.<br>
+如图所示, BSA-SpMM实现了平均2.01倍的加速, 超过了cuBLAS.</p>
+<p>实验表明, 当使用具有50%到70稀疏性的稀疏矩阵时, BSA-SpMM在所有稀疏矩阵上的表现始终优于其他SpMM实现. 然而, 当保持更高的稀疏性时,<br>
+识别不规则的非零模式并利用Tensor Cores进行SpMM就变得更加困难. 由于BSA-SpMM通过cuSPARSE库处理重新排序矩阵中的稀疏剩余,<br>
+当稀疏度达到90%时,<br>
+在不重新排序的情况下, cuSPARSE的方法会收敛. 然而, 对于超过90%稀疏度的稀疏矩阵, BSA-SpMM实现了平均1.98倍的加速,<br>
+超过了cuSPARSE.</p>
+<hr>
+<h2>总结</h2>
+<p>由于SpMM中非零元素的不规则分布和产生的内存访问模式, 使用非结构化稀疏矩阵进行SpMM具有挑战性. 论文中, 开发了一种新颖的重排序算法,<br>
+通过在行聚类过程中考虑块稀疏模式来增强SpMM的数据局部性. 并且开发了一种高效地GPU实现, 动态并行地聚类行. 最终实验结果表明,<br>
+BSA-SpMM与现有的最先进SpMM实现相比, 获得了最高21.99倍的加速.</p>
+<p>论文链接: <a href="https://link.springer.com/chapter/10.1007/978-3-031-69583-4_1" rel="nofollow">Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication</a></p>
+<p>开源链接: <a href="https://github.com/dleunji/BSA-SpMM_EURO-PAR-2024">BSA-SpMM_EURO-PAR-2024</a></p>
+<hr></div>
+<div style="font-size:small;margin-top:8px;float:right;">❤️ 转载文章请注明出处，谢谢！❤️</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://CX9898.github.io">CX98的博客</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("07/02/2024"!=""){
+    var startSite=new Date("07/02/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","CX9898/CX9898.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</html>

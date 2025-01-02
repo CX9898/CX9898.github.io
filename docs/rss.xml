@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Wed, 01 Jan 2025 10:20:38 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</title><link>https://CX9898.github.io/post/%5B-lun-wen-bi-ji-%5D-gao-xiao-de-kuai-xi-shu-gan-zhi-%28BSA%29-ju-zhen-zhong-pai-xu-fang-fa-yi-chong-fen-li-yong-zhang-liang-he-xin-jia-su-xi-shu-ju-zhen---duo-xiang-liang-cheng-fa.html</link><description>![Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/封面.png)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Thu, 02 Jan 2025 06:07:38 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法</title><link>https://CX9898.github.io/post/gao-xiao-de-kuai-xi-shu-gan-zhi-%28BSA%29-ju-zhen-zhong-pai-xu-fang-fa-yi-chong-fen-li-yong-zhang-liang-he-xin-jia-su-xi-shu-ju-zhen---duo-xiang-liang-cheng-fa.html</link><description>![Accelerated Block-Sparsity-Aware Matrix Reordering for Leveraging Tensor Cores in Sparse Matrix-Multivector Multiplication](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/封面.png)&#13;
 &#13;
 # [论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法&#13;
 &#13;
@@ -56,7 +56,7 @@ SpMM核心在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和
 几个最先进的深度学习模型, 如卷积神经网络, 图神经网络和TransFormer, 在训练和推理阶段都执行大量的稀疏矩阵-矩阵乘法(SpMM).&#13;
 SpMM是将M × K的稀疏输入矩阵S与大小为K × N的稠密输入矩阵D相乘, 生成大小为M×N的稠密输出矩阵O. 即O = S × D.&#13;
 &#13;
-![SpMM](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/SpMM.png)&#13;
+![SpMM](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/SpMM.png)&#13;
 SpMM&#13;
 &#13;
 SpMM在GPU上存在基本的计算挑战. 首先, 左乘的稀疏矩阵和右乘的稠密矩阵中元素的不规则访问由左乘稀疏矩阵中非零元素的位置决定.&#13;
@@ -92,7 +92,7 @@ Tensor Core 的工作方式, 需要优化数据格式和计算流程来高效利
 Tensor Core用于计算两个矩阵块的乘法和累加, 而直接在Tensor Core上处理SpMM中会因为每个块中计算的有效数据数量较少而导致资源的浪费.&#13;
 例如, 下面这个分块矩阵只有两个非零元素, 而Tensor core是一起计算整个矩阵块, 经过Tensor core计算后只有两个数据是有效数据.&#13;
 &#13;
-![两个非零元素的分块矩阵](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/两个非零元素的矩阵块.png)&#13;
+![两个非零元素的分块矩阵](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/两个非零元素的矩阵块.png)&#13;
 4×4的矩阵块中只有两个非零元素&#13;
 &#13;
 之前一些优化SpMM的努力主要集中在重新排列稀疏矩阵以提高数据局部性. 稀疏矩阵重新排序的主要目标是重新组织原始矩阵,&#13;
@@ -102,7 +102,7 @@ Tensor Core用于计算两个矩阵块的乘法和累加, 而直接在Tensor Cor
 通过重排序稀疏矩阵的数据, 根据列密度对每个行面板的列或对每个列面板的行进行重排, 形成密集分块. 能够有效的增加资源利用率.&#13;
 例如, 输入稀疏矩阵中某一块数据拥有下图这种性质.&#13;
 &#13;
-![稀疏矩阵聚类的例子](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/稀疏矩阵聚类的例子.png)&#13;
+![稀疏矩阵聚类的例子](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/稀疏矩阵聚类的例子.png)&#13;
 稀疏矩阵聚类的例子&#13;
 &#13;
 左稀疏块的数据拥有所在同一行或同一列的属性, 可以将其聚类为右边的密集块, 保留其所在原始位置的信息. 通过将类似这样可以聚类的数据聚合成密集块,&#13;
@@ -149,7 +149,7 @@ Yuke等人提出了一种稀疏图转换方案(称为TC-GNN), 将稀疏矩阵的
 &#13;
 ### BSA-SpMM概述&#13;
 &#13;
-![BSA-SpMM概述图](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA-SpMM概述图.png)&#13;
+![BSA-SpMM概述图](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA-SpMM概述图.png)&#13;
 BSA-SpMM概述图&#13;
 &#13;
 BSA-SpMM的总流程如图所示, 将输入稀疏矩阵S进行BSA重排, 生成的重排稀疏矩阵$S_R$进行分块(Tiling),&#13;
@@ -172,7 +172,7 @@ $zf$ 表示一行中具有非零元素的列块的零填充的数量.&#13;
 **相反, 当一行具有低离散度时, 非零元素主要集中在特定的列块中.**&#13;
 Encodings和Dispersions均通过CUDA内核中的并行归约计算.&#13;
 &#13;
-![离散度计算的两行示例](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/离散度计算的两行示例.png)&#13;
+![离散度计算的两行示例](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/离散度计算的两行示例.png)&#13;
 离散度计算的两行示例&#13;
 &#13;
 **离散度有助于识别和聚类具有相似块稀疏性的行, 从而优化数据局部性. 根据离散度(Dispersions)将行索引按升序排序, 可以提高聚类的效率.&#13;
@@ -191,7 +191,7 @@ Encodings和Dispersions均通过CUDA内核中的并行归约计算.&#13;
 **论文提出的'加权Jaccard相似度(weighted Jaccard similarity)'是'Jaccard相似度'的一种变体. 用于衡量稀疏矩阵中行之间的相似性,&#13;
 以便在重排序过程中将相似行聚集在一起形成密集块.**&#13;
 &#13;
-![公式1](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/公式1.png)&#13;
+![公式1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/公式1.png)&#13;
 公式1:加权jaccard相似度&#13;
 &#13;
 $J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i^{cmp})}{\sum_i\max(E_i^{rep},E_i^{cmp})}$&#13;
@@ -243,7 +243,7 @@ $J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i
 生成包含大量非零元素的密集块对于充分利用Tensor core进行SpMM至关重要. 为了获得高密度块, 关键是对每行的非零模式的相似性使用每个非零元素的列索引进行聚类.&#13;
 算法1展示了host端的整个BSA重排序过程的伪代码.&#13;
 &#13;
-![算法1](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法1.png)&#13;
+![算法1](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法1.png)&#13;
 算法1:整个BSA重排序过程的伪代码&#13;
 &#13;
 算法第4-9行: 遍历矩阵所有行索引, 如果当前行的离散度为0, 则分配一个簇ID为-1, 以排除所有空行.&#13;
@@ -259,7 +259,7 @@ $J(\mathbf{\hat{E}^{rep}},\mathbf{\hat{E}^{cmp}})=\frac{\sum_i\min(E_i^{rep},E_i
 &#13;
 下图展示了在GPU上的BSA重排序总流程.&#13;
 &#13;
-![\img.png](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/GPU上对BSA重排序的总体流程.png)&#13;
+![/img.png](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/GPU上对BSA重排序的总体流程.png)&#13;
 GPU上对BSA重排序的总体流程&#13;
 &#13;
 BSA重排序算法使用GPU的主要优点是支持并行聚类和加速编码行向量之间的相似度计算.&#13;
@@ -272,7 +272,7 @@ CUDA动态并行允许在核函数内部调用新的内核, 并能够将新生�
 &#13;
 如图(b)所示, 基于相似阈值 $(\alpha)$, 第一个线程对行进行聚类, 形成第一个簇(Cluster 0).&#13;
 &#13;
-![BSA_clustering()kernel图示](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA_clustering()kernel图示.png)&#13;
+![BSA_clustering()kernel图示](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/BSA_clustering()kernel图示.png)&#13;
 &#13;
 如果 $\mathbf{\hat{E}^{cmp}}$ 和其候选簇的代表 $\mathbf{\hat{E}^{rep}}$ 相似, 则将 $\mathbf{\hat{E}^{cmp}}$ 分组到与&#13;
 $\mathbf{\hat{E}^{rep}}$ 相同的簇中.&#13;
@@ -289,7 +289,7 @@ $\mathbf{\hat{E}^{rep}}$ 相同的簇中.&#13;
 &#13;
 算法2展示了BSA聚类核函数的伪代码, 它在GPU上执行BSA重排序.&#13;
 &#13;
-![算法2](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法2.png)&#13;
+![算法2](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/算法2.png)&#13;
 &#13;
 BSA聚类核函数通过利用并行归约合动态并行性以及同步方案实现了高度的并行性.&#13;
 每个线程块负责形成一个簇并识别与簇的 $\mathbf{\hat{E}^{rep}}$ 相似的 $\mathbf{\hat{E}^{cmp}}$ 向量.&#13;
@@ -354,7 +354,7 @@ $S_p$ 和 $S_s$ 分别独立用于执行SpMM操作, 最后将两个结果合并�
 &#13;
 ### 性能评估&#13;
 &#13;
-![从DLMC收集的稀疏矩阵上的SpMM的性能比较](\img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/从DLMC收集的稀疏矩阵上的SpMM的性能比较.png)&#13;
+![从DLMC收集的稀疏矩阵上的SpMM的性能比较](/img/[论文笔记]高效的块稀疏感知(BSA)矩阵重排序方法以充分利用张量核心加速稀疏矩阵-多向量乘法/从DLMC收集的稀疏矩阵上的SpMM的性能比较.png)&#13;
 从DLMC收集的稀疏矩阵上的SpMM的性能比较. X轴: 稀疏矩阵的稀疏度; Y 轴：以 cuBLAS 为基准并结合 Tensor core&#13;
 进行归一化处理后的加速比（黑色虚线水平线). 每个方框中的黑线表示中位加速倍数.&#13;
 &#13;
@@ -380,7 +380,7 @@ BSA-SpMM与现有的最先进SpMM实现相比, 获得了最高21.99倍的加速.
 &#13;
 开源链接: [BSA-SpMM_EURO-PAR-2024](https://github.com/dleunji/BSA-SpMM_EURO-PAR-2024)&#13;
 &#13;
----。</description><guid isPermaLink="true">https://CX9898.github.io/post/%5B-lun-wen-bi-ji-%5D-gao-xiao-de-kuai-xi-shu-gan-zhi-%28BSA%29-ju-zhen-zhong-pai-xu-fang-fa-yi-chong-fen-li-yong-zhang-liang-he-xin-jia-su-xi-shu-ju-zhen---duo-xiang-liang-cheng-fa.html</guid><pubDate>Wed, 01 Jan 2025 10:20:05 +0000</pubDate></item><item><title>CUDA 编程使用 Tensor core 详解</title><link>https://CX9898.github.io/post/CUDA%20-bian-cheng-shi-yong-%20Tensor%20core%20-xiang-jie.html</link><description>![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)&#13;
+---。</description><guid isPermaLink="true">https://CX9898.github.io/post/gao-xiao-de-kuai-xi-shu-gan-zhi-%28BSA%29-ju-zhen-zhong-pai-xu-fang-fa-yi-chong-fen-li-yong-zhang-liang-he-xin-jia-su-xi-shu-ju-zhen---duo-xiang-liang-cheng-fa.html</guid><pubDate>Wed, 01 Jan 2025 10:20:05 +0000</pubDate></item><item><title>CUDA 编程使用 Tensor core 详解</title><link>https://CX9898.github.io/post/CUDA%20-bian-cheng-shi-yong-%20Tensor%20core%20-xiang-jie.html</link><description>![Tensor core](/img/CUDA_编程使用_Tensor_core_详解/封面.png)&#13;
 &#13;
 # CUDA 编程使用 Tensor core 详解&#13;
 &#13;
