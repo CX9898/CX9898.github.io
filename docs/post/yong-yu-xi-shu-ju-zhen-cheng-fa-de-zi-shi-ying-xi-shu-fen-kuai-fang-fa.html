@@ -10,7 +10,7 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="![封面](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)
+<meta name="description" content="![封面](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)
 
 # [论文笔记]用于稀疏矩阵乘法的自适应稀疏分块方法
 
@@ -50,18 +50,18 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 **SpMM(稀疏矩阵-稠密矩阵乘法)是将稀疏矩阵$S$与稠密矩阵$D$相乘生成一个密集输出矩阵$O$的操作.** 广泛应用于许多计算密集型领域,
 包括求解矩阵特征值, 卷积神经网络(CNNs)和图计算等. 算法1展示了使用CSR表示的顺序SpMM运算.
 
-![顺序运算SpMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)
+![顺序运算SpMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)
 
 **SDDMM(采样稀疏矩阵-稠密矩阵乘法)是将两个稠密矩阵$D1$和$D2$相乘, 然后将结果矩阵与稀疏矩阵$S$进行元素级乘法(哈达玛积).**
 常用于机器学习中的稀疏模型计算, 例如 Gamma Poisson(GaP),稀疏因子分析(SFA)和交替最小二乘法(ALS). 算法2展示了使用CSR表示的顺序SDDMM运算.
 
 > 哈达玛积(Hadamard Product)是两个矩阵的对应元素相乘, 得到的矩阵的每个元素是两个矩阵对应位置元素的乘积.
 
-![顺序运算SDDMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)
+![顺序运算SDDMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)
 
 下图展示了SpMM和SDDMM的概念视图.
 
-![SpMM和SDDMM的概念视图](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)
+![SpMM和SDDMM的概念视图](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)
 
 > 关于SpMM和SDDMM的更多介绍可以参考以往的笔记, 这里就简单概括一下.
 
@@ -78,7 +78,7 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 > 带状矩阵: 矩阵中非零元素只分布在矩阵的对角线附近, 其他位置都是0. 带状矩阵的'带宽'
 > 是指矩阵中心对角线左右两边非零元素的宽度(或者说个数).
 
-![带宽为1的4×4带状矩阵示例](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)
+![带宽为1的4×4带状矩阵示例](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)
 带宽为1的4×4带状矩阵示例
 
 - 对于稠密输入矩阵$D$和稠密输出矩阵$O$都是$N \times K$的矩阵.
@@ -137,7 +137,7 @@ DCSC的列访问模式导致单词操作设计的非零元素数量较小(列密
 
 下图是基于随机生成的稀疏矩阵, 通过模拟不同的稀疏结构, 测试三种不同方法的性能.
 
-![三种方案的性能对比](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)
+![三种方案的性能对比](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)
 三种方案的性能对比
 
 - **GFLOPS表示每秒十亿次的浮点运算数, 是一个衡量计算设备性能的指标. 数值越高表示性能越好**
@@ -166,7 +166,7 @@ ASpT方案基于以下观察:
 因此, ASpT选择CSR表示的按行访问(Row-wise Access)和二维分块(2D Tiling)方法的组合, 以适应不同的稀疏性.
 根据稀疏矩阵不同区域的稠密程度动态选择策略. 下图展示了使用自适应稀疏分块(ASpT)方法背后的高级思想.
 
-![在多个内核上使用ASpT进行稀疏矩阵乘法](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)
+![在多个内核上使用ASpT进行稀疏矩阵乘法](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)
 在多个内核上使用ASpT进行稀疏矩阵乘法
 
 **ASpT方法首先将稀疏矩阵$S$划分为多个行面板(row-panels), 行面板的大小(行数)由缓存(L2 cache)或内存容量限制来决定.
@@ -182,7 +182,7 @@ SpMM方案使用带有额外元数据的无序CSR表示, 如下图所示, (a)和
 在(a)中, **整个矩阵被划分为两个行面板, 每个行面板包含一组连续的行.** 如果行面板中的列段包含至少两个非零元素, 则被归类为高密度列段.
 稀疏矩阵的每个行面板按照图(b)所示的方式重新排序. **行面板中的所有高密度列段都放置在低密度列段之前.**
 
-![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)
+![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)
 将稀疏矩阵拆分为高度聚类的行段和剩余部分
 
 因此, **每个重新排序的行面板可以看成两个部分: 第一个部分包含一组高密度列段, 第二个部分由低密度列段组成**. 并且第一个部分进一步细分为
@@ -218,7 +218,7 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 - **在线程块内部, 不同的线程束(warp)处理行块中的不同行,
   线程束内的线程沿着K方向分布, 以避免线程发散, 并实现良好的负载均衡**
 
-![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)
+![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)
 针对密集块和稀疏块的SpMM-ASpT的GPU实现
 
 对于稠密2D tiles会将$D$的相应元素加载到共享内存中, 以便多次重用提高访问效率. 对于稀疏2D tiles, 因为非零元素较少,
@@ -240,7 +240,7 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 在SDDMM中, 两个稠密矩阵相乘, 然后将结果矩阵使用元素级乘法(哈达玛积)与一个稀疏矩阵进行缩放.
 下图展示了针对密集块和稀疏块的SDDMM-ASpT的GPU实现.
 
-![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)
+![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)
 针对密集块和稀疏块的SDDMM-ASpT的GPU实现
 
 在GPU实现上, 算法动态选择稠密块和稀疏块的处理方式. 对于稠密块, 密集矩阵$D1$加载到共享内存中. 对于稀疏块, $D1$
@@ -257,13 +257,13 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 - 在SpMM测试中, 与NVIDIA cuSPARSE库的性能进行比较
 - 在SDDMM测试中, 与BIDMach库的性能进行比较
 
-![P100的SpMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)
+![P100的SpMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)
 P100的SpMM结果
 
 结果显示, **ASpT显著优于cuSPARSE, 在高宽度稠密矩阵(K=128)情况下表现尤为突出. 对于特定数据集, ASpT的性能可达到900 GFLOPs,
 而cuSPARSE的最高性能约为685 GFLOPs**. ASpT在稠密宽度较大的场景中, 性能提升显著, 显示了对大规模矩阵运算的适应性.
 
-![P100的SDDMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)
+![P100的SDDMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)
 P100的SDDMM结果
 
 结果显示, **ASpT显著优于BIDMach，在所有测试矩阵上表现优异. 随着稠密矩阵宽度(K)增加, ASpT性能进一步提升.** 说明其GPU优化策略的适用性.
@@ -288,7 +288,7 @@ SpMM和SDDMM是许多机器学习应用中的关键核心. 与其他使用定制
 
 开源链接: [ASpT-mirror](https://github.com/LucasWilkinson/ASpT-mirror)。">
 <meta property="og:title" content="用于稀疏矩阵乘法的自适应稀疏分块方法">
-<meta property="og:description" content="![封面](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)
+<meta property="og:description" content="![封面](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)
 
 # [论文笔记]用于稀疏矩阵乘法的自适应稀疏分块方法
 
@@ -328,18 +328,18 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 **SpMM(稀疏矩阵-稠密矩阵乘法)是将稀疏矩阵$S$与稠密矩阵$D$相乘生成一个密集输出矩阵$O$的操作.** 广泛应用于许多计算密集型领域,
 包括求解矩阵特征值, 卷积神经网络(CNNs)和图计算等. 算法1展示了使用CSR表示的顺序SpMM运算.
 
-![顺序运算SpMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)
+![顺序运算SpMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)
 
 **SDDMM(采样稀疏矩阵-稠密矩阵乘法)是将两个稠密矩阵$D1$和$D2$相乘, 然后将结果矩阵与稀疏矩阵$S$进行元素级乘法(哈达玛积).**
 常用于机器学习中的稀疏模型计算, 例如 Gamma Poisson(GaP),稀疏因子分析(SFA)和交替最小二乘法(ALS). 算法2展示了使用CSR表示的顺序SDDMM运算.
 
 > 哈达玛积(Hadamard Product)是两个矩阵的对应元素相乘, 得到的矩阵的每个元素是两个矩阵对应位置元素的乘积.
 
-![顺序运算SDDMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)
+![顺序运算SDDMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)
 
 下图展示了SpMM和SDDMM的概念视图.
 
-![SpMM和SDDMM的概念视图](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)
+![SpMM和SDDMM的概念视图](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)
 
 > 关于SpMM和SDDMM的更多介绍可以参考以往的笔记, 这里就简单概括一下.
 
@@ -356,7 +356,7 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 > 带状矩阵: 矩阵中非零元素只分布在矩阵的对角线附近, 其他位置都是0. 带状矩阵的'带宽'
 > 是指矩阵中心对角线左右两边非零元素的宽度(或者说个数).
 
-![带宽为1的4×4带状矩阵示例](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)
+![带宽为1的4×4带状矩阵示例](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)
 带宽为1的4×4带状矩阵示例
 
 - 对于稠密输入矩阵$D$和稠密输出矩阵$O$都是$N \times K$的矩阵.
@@ -415,7 +415,7 @@ DCSC的列访问模式导致单词操作设计的非零元素数量较小(列密
 
 下图是基于随机生成的稀疏矩阵, 通过模拟不同的稀疏结构, 测试三种不同方法的性能.
 
-![三种方案的性能对比](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)
+![三种方案的性能对比](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)
 三种方案的性能对比
 
 - **GFLOPS表示每秒十亿次的浮点运算数, 是一个衡量计算设备性能的指标. 数值越高表示性能越好**
@@ -444,7 +444,7 @@ ASpT方案基于以下观察:
 因此, ASpT选择CSR表示的按行访问(Row-wise Access)和二维分块(2D Tiling)方法的组合, 以适应不同的稀疏性.
 根据稀疏矩阵不同区域的稠密程度动态选择策略. 下图展示了使用自适应稀疏分块(ASpT)方法背后的高级思想.
 
-![在多个内核上使用ASpT进行稀疏矩阵乘法](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)
+![在多个内核上使用ASpT进行稀疏矩阵乘法](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)
 在多个内核上使用ASpT进行稀疏矩阵乘法
 
 **ASpT方法首先将稀疏矩阵$S$划分为多个行面板(row-panels), 行面板的大小(行数)由缓存(L2 cache)或内存容量限制来决定.
@@ -460,7 +460,7 @@ SpMM方案使用带有额外元数据的无序CSR表示, 如下图所示, (a)和
 在(a)中, **整个矩阵被划分为两个行面板, 每个行面板包含一组连续的行.** 如果行面板中的列段包含至少两个非零元素, 则被归类为高密度列段.
 稀疏矩阵的每个行面板按照图(b)所示的方式重新排序. **行面板中的所有高密度列段都放置在低密度列段之前.**
 
-![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)
+![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)
 将稀疏矩阵拆分为高度聚类的行段和剩余部分
 
 因此, **每个重新排序的行面板可以看成两个部分: 第一个部分包含一组高密度列段, 第二个部分由低密度列段组成**. 并且第一个部分进一步细分为
@@ -496,7 +496,7 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 - **在线程块内部, 不同的线程束(warp)处理行块中的不同行,
   线程束内的线程沿着K方向分布, 以避免线程发散, 并实现良好的负载均衡**
 
-![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)
+![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)
 针对密集块和稀疏块的SpMM-ASpT的GPU实现
 
 对于稠密2D tiles会将$D$的相应元素加载到共享内存中, 以便多次重用提高访问效率. 对于稀疏2D tiles, 因为非零元素较少,
@@ -518,7 +518,7 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 在SDDMM中, 两个稠密矩阵相乘, 然后将结果矩阵使用元素级乘法(哈达玛积)与一个稀疏矩阵进行缩放.
 下图展示了针对密集块和稀疏块的SDDMM-ASpT的GPU实现.
 
-![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)
+![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)
 针对密集块和稀疏块的SDDMM-ASpT的GPU实现
 
 在GPU实现上, 算法动态选择稠密块和稀疏块的处理方式. 对于稠密块, 密集矩阵$D1$加载到共享内存中. 对于稀疏块, $D1$
@@ -535,13 +535,13 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 - 在SpMM测试中, 与NVIDIA cuSPARSE库的性能进行比较
 - 在SDDMM测试中, 与BIDMach库的性能进行比较
 
-![P100的SpMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)
+![P100的SpMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)
 P100的SpMM结果
 
 结果显示, **ASpT显著优于cuSPARSE, 在高宽度稠密矩阵(K=128)情况下表现尤为突出. 对于特定数据集, ASpT的性能可达到900 GFLOPs,
 而cuSPARSE的最高性能约为685 GFLOPs**. ASpT在稠密宽度较大的场景中, 性能提升显著, 显示了对大规模矩阵运算的适应性.
 
-![P100的SDDMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)
+![P100的SDDMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)
 P100的SDDMM结果
 
 结果显示, **ASpT显著优于BIDMach，在所有测试矩阵上表现优异. 随着稠密矩阵宽度(K)增加, ASpT性能进一步提升.** 说明其GPU优化策略的适用性.
@@ -625,7 +625,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%81%E9%9D%A2.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%81%E9%9D%A2.png" alt="封面" style="max-width: 100%;"></a></p>
+<div class="markdown-body" id="postBody"><p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%81%E9%9D%A2.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%81%E9%9D%A2.png" alt="封面" style="max-width: 100%;"></a></p>
 <h1>[论文笔记]用于稀疏矩阵乘法的自适应稀疏分块方法</h1>
 <p>&lt;&lt;<strong>Adaptive Sparse Tiling for Sparse Matrix Multiplication</strong>&gt;&gt;</p>
 <p>论文于2019年发表在PPoPP '19: Proceedings of the 24th Symposium on Principles and Practice of Parallel Programming.</p>
@@ -653,15 +653,15 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 <h2>SpMM和SDDMM</h2>
 <p><strong>SpMM(稀疏矩阵-稠密矩阵乘法)是将稀疏矩阵$S$与稠密矩阵$D$相乘生成一个密集输出矩阵$O$的操作.</strong> 广泛应用于许多计算密集型领域,<br>
 包括求解矩阵特征值, 卷积神经网络(CNNs)和图计算等. 算法1展示了使用CSR表示的顺序SpMM运算.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SpMM.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SpMM.png" alt="顺序运算SpMM" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SpMM.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SpMM.png" alt="顺序运算SpMM" style="max-width: 100%;"></a></p>
 <p><strong>SDDMM(采样稀疏矩阵-稠密矩阵乘法)是将两个稠密矩阵$D1$和$D2$相乘, 然后将结果矩阵与稀疏矩阵$S$进行元素级乘法(哈达玛积).</strong><br>
 常用于机器学习中的稀疏模型计算, 例如 Gamma Poisson(GaP),稀疏因子分析(SFA)和交替最小二乘法(ALS). 算法2展示了使用CSR表示的顺序SDDMM运算.</p>
 <blockquote>
 <p>哈达玛积(Hadamard Product)是两个矩阵的对应元素相乘, 得到的矩阵的每个元素是两个矩阵对应位置元素的乘积.</p>
 </blockquote>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SDDMM.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SDDMM.png" alt="顺序运算SDDMM" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SDDMM.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%A1%BA%E5%BA%8F%E8%BF%90%E7%AE%97SDDMM.png" alt="顺序运算SDDMM" style="max-width: 100%;"></a></p>
 <p>下图展示了SpMM和SDDMM的概念视图.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/SpMM%E5%92%8CSDDMM%E7%9A%84%E6%A6%82%E5%BF%B5%E8%A7%86%E5%9B%BE.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/SpMM%E5%92%8CSDDMM%E7%9A%84%E6%A6%82%E5%BF%B5%E8%A7%86%E5%9B%BE.png" alt="SpMM和SDDMM的概念视图" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/SpMM%E5%92%8CSDDMM%E7%9A%84%E6%A6%82%E5%BF%B5%E8%A7%86%E5%9B%BE.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/SpMM%E5%92%8CSDDMM%E7%9A%84%E6%A6%82%E5%BF%B5%E8%A7%86%E5%9B%BE.png" alt="SpMM和SDDMM的概念视图" style="max-width: 100%;"></a></p>
 <blockquote>
 <p>关于SpMM和SDDMM的更多介绍可以参考以往的笔记, 这里就简单概括一下.</p>
 </blockquote>
@@ -676,7 +676,7 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 <p>带状矩阵: 矩阵中非零元素只分布在矩阵的对角线附近, 其他位置都是0. 带状矩阵的"带宽"<br>
 是指矩阵中心对角线左右两边非零元素的宽度(或者说个数).</p>
 </blockquote>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B8%A6%E5%AE%BD%E4%B8%BA1%E7%9A%844%C3%974%E5%B8%A6%E7%8A%B6%E7%9F%A9%E9%98%B5%E7%A4%BA%E4%BE%8B.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B8%A6%E5%AE%BD%E4%B8%BA1%E7%9A%844%C3%974%E5%B8%A6%E7%8A%B6%E7%9F%A9%E9%98%B5%E7%A4%BA%E4%BE%8B.png" alt="带宽为1的4×4带状矩阵示例" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B8%A6%E5%AE%BD%E4%B8%BA1%E7%9A%844%C3%974%E5%B8%A6%E7%8A%B6%E7%9F%A9%E9%98%B5%E7%A4%BA%E4%BE%8B.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B8%A6%E5%AE%BD%E4%B8%BA1%E7%9A%844%C3%974%E5%B8%A6%E7%8A%B6%E7%9F%A9%E9%98%B5%E7%A4%BA%E4%BE%8B.png" alt="带宽为1的4×4带状矩阵示例" style="max-width: 100%;"></a><br>
 带宽为1的4×4带状矩阵示例</p>
 <ul>
 <li>对于稠密输入矩阵$D$和稠密输出矩阵$O$都是$N \times K$的矩阵.
@@ -736,7 +736,7 @@ DCSC的列访问模式导致单词操作设计的非零元素数量较小(列密
 和$O$的重用性. 每个二维块中, 稠密矩阵$D$的列数据和输出矩阵$O$的行数据可以在寄存器中重用. 但是,<br>
 二维分块的性能依赖于稀疏矩阵$S$的非零元素分布. 如果矩阵的非零元素非常稀疏, 某些二维块可能空置, 浪费计算资源.</p>
 <p>下图是基于随机生成的稀疏矩阵, 通过模拟不同的稀疏结构, 测试三种不同方法的性能.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E4%B8%89%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E4%B8%89%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94.png" alt="三种方案的性能对比" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E4%B8%89%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E4%B8%89%E7%A7%8D%E6%96%B9%E6%A1%88%E7%9A%84%E6%80%A7%E8%83%BD%E5%AF%B9%E6%AF%94.png" alt="三种方案的性能对比" style="max-width: 100%;"></a><br>
 三种方案的性能对比</p>
 <ul>
 <li><strong>GFLOPS表示每秒十亿次的浮点运算数, 是一个衡量计算设备性能的指标. 数值越高表示性能越好</strong></li>
@@ -767,7 +767,7 @@ $M$, $N$: 稀疏矩阵的行数和列数</li>
 </ul>
 <p>因此, ASpT选择CSR表示的按行访问(Row-wise Access)和二维分块(2D Tiling)方法的组合, 以适应不同的稀疏性.<br>
 根据稀疏矩阵不同区域的稠密程度动态选择策略. 下图展示了使用自适应稀疏分块(ASpT)方法背后的高级思想.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%9C%A8%E5%A4%9A%E4%B8%AA%E5%86%85%E6%A0%B8%E4%B8%8A%E4%BD%BF%E7%94%A8ASpT%E8%BF%9B%E8%A1%8C%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%9C%A8%E5%A4%9A%E4%B8%AA%E5%86%85%E6%A0%B8%E4%B8%8A%E4%BD%BF%E7%94%A8ASpT%E8%BF%9B%E8%A1%8C%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95.png" alt="在多个内核上使用ASpT进行稀疏矩阵乘法" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%9C%A8%E5%A4%9A%E4%B8%AA%E5%86%85%E6%A0%B8%E4%B8%8A%E4%BD%BF%E7%94%A8ASpT%E8%BF%9B%E8%A1%8C%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%9C%A8%E5%A4%9A%E4%B8%AA%E5%86%85%E6%A0%B8%E4%B8%8A%E4%BD%BF%E7%94%A8ASpT%E8%BF%9B%E8%A1%8C%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E4%B9%98%E6%B3%95.png" alt="在多个内核上使用ASpT进行稀疏矩阵乘法" style="max-width: 100%;"></a><br>
 在多个内核上使用ASpT进行稀疏矩阵乘法</p>
 <p><strong>ASpT方法首先将稀疏矩阵$S$划分为多个行面板(row-panels), 行面板的大小(行数)由缓存(L2 cache)或内存容量限制来决定.<br>
 然后对每个行面板通过阈值(阈值通过上节中的测试确定, 是 CSR 和 2D Tile 性能的交叉点)分为高密度的稠密块(Dense tiles)<br>
@@ -778,7 +778,7 @@ ASpT 会对每个行块内的列段进行重新排序, 使高密度列段优先�
 <p>SpMM方案使用带有额外元数据的无序CSR表示, 如下图所示, (a)和(b)分别展示了稀疏矩阵的概念视图和相应的无序CSR表示.<br>
 在(a)中, <strong>整个矩阵被划分为两个行面板, 每个行面板包含一组连续的行.</strong> 如果行面板中的列段包含至少两个非零元素, 则被归类为高密度列段.<br>
 稀疏矩阵的每个行面板按照图(b)所示的方式重新排序. <strong>行面板中的所有高密度列段都放置在低密度列段之前.</strong></p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%86%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E6%8B%86%E5%88%86%E4%B8%BA%E9%AB%98%E5%BA%A6%E8%81%9A%E7%B1%BB%E7%9A%84%E8%A1%8C%E6%AE%B5%E5%92%8C%E5%89%A9%E4%BD%99%E9%83%A8%E5%88%86.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%86%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E6%8B%86%E5%88%86%E4%B8%BA%E9%AB%98%E5%BA%A6%E8%81%9A%E7%B1%BB%E7%9A%84%E8%A1%8C%E6%AE%B5%E5%92%8C%E5%89%A9%E4%BD%99%E9%83%A8%E5%88%86.png" alt="将稀疏矩阵拆分为高度聚类的行段和剩余部分" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%86%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E6%8B%86%E5%88%86%E4%B8%BA%E9%AB%98%E5%BA%A6%E8%81%9A%E7%B1%BB%E7%9A%84%E8%A1%8C%E6%AE%B5%E5%92%8C%E5%89%A9%E4%BD%99%E9%83%A8%E5%88%86.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E5%B0%86%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E6%8B%86%E5%88%86%E4%B8%BA%E9%AB%98%E5%BA%A6%E8%81%9A%E7%B1%BB%E7%9A%84%E8%A1%8C%E6%AE%B5%E5%92%8C%E5%89%A9%E4%BD%99%E9%83%A8%E5%88%86.png" alt="将稀疏矩阵拆分为高度聚类的行段和剩余部分" style="max-width: 100%;"></a><br>
 将稀疏矩阵拆分为高度聚类的行段和剩余部分</p>
 <p>因此, <strong>每个重新排序的行面板可以看成两个部分: 第一个部分包含一组高密度列段, 第二个部分由低密度列段组成</strong>. 并且第一个部分进一步细分为<br>
 2D tiles, 而整个第二个部分视为单个2D tile. 行面板中的第一个部分的2D tiles的宽度选择适合于缓存(或共享内存)的大小.</p>
@@ -804,7 +804,7 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 <li><strong>在线程块内部, 不同的线程束(warp)处理行块中的不同行,<br>
 线程束内的线程沿着K方向分布, 以避免线程发散, 并实现良好的负载均衡</strong></li>
 </ul>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SpMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SpMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png" alt="针对密集块和稀疏块的SpMM-ASpT的GPU实现" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SpMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SpMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png" alt="针对密集块和稀疏块的SpMM-ASpT的GPU实现" style="max-width: 100%;"></a><br>
 针对密集块和稀疏块的SpMM-ASpT的GPU实现</p>
 <p>对于稠密2D tiles会将$D$的相应元素加载到共享内存中, 以便多次重用提高访问效率. 对于稀疏2D tiles, 因为非零元素较少,<br>
 直接从全局内存中读取访问.</p>
@@ -818,7 +818,7 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 <h3>SDDMM的ASpT实现</h3>
 <p>在SDDMM中, 两个稠密矩阵相乘, 然后将结果矩阵使用元素级乘法(哈达玛积)与一个稀疏矩阵进行缩放.<br>
 下图展示了针对密集块和稀疏块的SDDMM-ASpT的GPU实现.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SDDMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SDDMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png" alt="针对密集块和稀疏块的SDDMM-ASpT的GPU实现" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SDDMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/%E9%92%88%E5%AF%B9%E5%AF%86%E9%9B%86%E5%9D%97%E5%92%8C%E7%A8%80%E7%96%8F%E5%9D%97%E7%9A%84SDDMM-ASpT%E7%9A%84GPU%E5%AE%9E%E7%8E%B0.png" alt="针对密集块和稀疏块的SDDMM-ASpT的GPU实现" style="max-width: 100%;"></a><br>
 针对密集块和稀疏块的SDDMM-ASpT的GPU实现</p>
 <p>在GPU实现上, 算法动态选择稠密块和稀疏块的处理方式. 对于稠密块, 密集矩阵$D1$加载到共享内存中. 对于稀疏块, $D1$<br>
 的数据直接从全局内存中访问. 稠密矩阵$D2$的元素无论稠密块还是稀疏块都储存在寄存器中. 计算得到的输出矩阵$O$<br>
@@ -832,11 +832,11 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 <li>在SpMM测试中, 与NVIDIA cuSPARSE库的性能进行比较</li>
 <li>在SDDMM测试中, 与BIDMach库的性能进行比较</li>
 </ul>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SpMM%E7%BB%93%E6%9E%9C.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SpMM%E7%BB%93%E6%9E%9C.png" alt="P100的SpMM结果" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SpMM%E7%BB%93%E6%9E%9C.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SpMM%E7%BB%93%E6%9E%9C.png" alt="P100的SpMM结果" style="max-width: 100%;"></a><br>
 P100的SpMM结果</p>
 <p>结果显示, <strong>ASpT显著优于cuSPARSE, 在高宽度稠密矩阵(K=128)情况下表现尤为突出. 对于特定数据集, ASpT的性能可达到900 GFLOPs,<br>
 而cuSPARSE的最高性能约为685 GFLOPs</strong>. ASpT在稠密宽度较大的场景中, 性能提升显著, 显示了对大规模矩阵运算的适应性.</p>
-<p><a target="_blank" rel="noopener noreferrer" href="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SDDMM%E7%BB%93%E6%9E%9C.png"><img src="/imh/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SDDMM%E7%BB%93%E6%9E%9C.png" alt="P100的SDDMM结果" style="max-width: 100%;"></a><br>
+<p><a target="_blank" rel="noopener noreferrer" href="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SDDMM%E7%BB%93%E6%9E%9C.png"><img src="/img/%5B%E8%AE%BA%E6%96%87%E7%AC%94%E8%AE%B0%5D%E7%94%A8%E4%BA%8E%E7%A8%80%E7%96%8F%E7%9F%A9%E9%98%B5%E7%9A%84%E8%87%AA%E9%80%82%E5%BA%94%E7%A8%80%E7%96%8F%E5%88%86%E5%9D%97%E6%96%B9%E6%B3%95/P100%E7%9A%84SDDMM%E7%BB%93%E6%9E%9C.png" alt="P100的SDDMM结果" style="max-width: 100%;"></a><br>
 P100的SDDMM结果</p>
 <p>结果显示, <strong>ASpT显著优于BIDMach，在所有测试矩阵上表现优异. 随着稠密矩阵宽度(K)增加, ASpT性能进一步提升.</strong> 说明其GPU优化策略的适用性.</p>
 <p>在不同平台和任务下, ASpT均展现了显著的性能提升, 尤其在稠密矩阵宽度较大和稀疏矩阵规模较大的场景中.</p>

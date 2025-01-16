@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Thu, 16 Jan 2025 06:06:19 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用于稀疏矩阵乘法的自适应稀疏分块方法</title><link>https://CX9898.github.io/post/yong-yu-xi-shu-ju-zhen-cheng-fa-de-zi-shi-ying-xi-shu-fen-kuai-fang-fa.html</link><description>![封面](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)&#13;
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>CX98的博客</title><link>https://CX9898.github.io</link><description>HPC练习生</description><copyright>CX98的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://cx9898.github.io/img/CX.jpg</url><title>avatar</title><link>https://CX9898.github.io</link></image><lastBuildDate>Thu, 16 Jan 2025 06:33:41 +0000</lastBuildDate><managingEditor>CX98的博客</managingEditor><ttl>60</ttl><webMaster>CX98的博客</webMaster><item><title>用于稀疏矩阵乘法的自适应稀疏分块方法</title><link>https://CX9898.github.io/post/yong-yu-xi-shu-ju-zhen-cheng-fa-de-zi-shi-ying-xi-shu-fen-kuai-fang-fa.html</link><description>![封面](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/封面.png)&#13;
 &#13;
 # [论文笔记]用于稀疏矩阵乘法的自适应稀疏分块方法&#13;
 &#13;
@@ -39,18 +39,18 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 **SpMM(稀疏矩阵-稠密矩阵乘法)是将稀疏矩阵$S$与稠密矩阵$D$相乘生成一个密集输出矩阵$O$的操作.** 广泛应用于许多计算密集型领域,&#13;
 包括求解矩阵特征值, 卷积神经网络(CNNs)和图计算等. 算法1展示了使用CSR表示的顺序SpMM运算.&#13;
 &#13;
-![顺序运算SpMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)&#13;
+![顺序运算SpMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SpMM.png)&#13;
 &#13;
 **SDDMM(采样稀疏矩阵-稠密矩阵乘法)是将两个稠密矩阵$D1$和$D2$相乘, 然后将结果矩阵与稀疏矩阵$S$进行元素级乘法(哈达玛积).**&#13;
 常用于机器学习中的稀疏模型计算, 例如 Gamma Poisson(GaP),稀疏因子分析(SFA)和交替最小二乘法(ALS). 算法2展示了使用CSR表示的顺序SDDMM运算.&#13;
 &#13;
 &gt; 哈达玛积(Hadamard Product)是两个矩阵的对应元素相乘, 得到的矩阵的每个元素是两个矩阵对应位置元素的乘积.&#13;
 &#13;
-![顺序运算SDDMM](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)&#13;
+![顺序运算SDDMM](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/顺序运算SDDMM.png)&#13;
 &#13;
 下图展示了SpMM和SDDMM的概念视图.&#13;
 &#13;
-![SpMM和SDDMM的概念视图](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)&#13;
+![SpMM和SDDMM的概念视图](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/SpMM和SDDMM的概念视图.png)&#13;
 &#13;
 &gt; 关于SpMM和SDDMM的更多介绍可以参考以往的笔记, 这里就简单概括一下.&#13;
 &#13;
@@ -67,7 +67,7 @@ Suite集合的大量矩阵进行实验评估, 表明与当前可用的最先进�
 &gt; 带状矩阵: 矩阵中非零元素只分布在矩阵的对角线附近, 其他位置都是0. 带状矩阵的'带宽'&#13;
 &gt; 是指矩阵中心对角线左右两边非零元素的宽度(或者说个数).&#13;
 &#13;
-![带宽为1的4×4带状矩阵示例](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)&#13;
+![带宽为1的4×4带状矩阵示例](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/带宽为1的4×4带状矩阵示例.png)&#13;
 带宽为1的4×4带状矩阵示例&#13;
 &#13;
 - 对于稠密输入矩阵$D$和稠密输出矩阵$O$都是$N \times K$的矩阵.&#13;
@@ -126,7 +126,7 @@ DCSC的列访问模式导致单词操作设计的非零元素数量较小(列密
 &#13;
 下图是基于随机生成的稀疏矩阵, 通过模拟不同的稀疏结构, 测试三种不同方法的性能.&#13;
 &#13;
-![三种方案的性能对比](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)&#13;
+![三种方案的性能对比](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/三种方案的性能对比.png)&#13;
 三种方案的性能对比&#13;
 &#13;
 - **GFLOPS表示每秒十亿次的浮点运算数, 是一个衡量计算设备性能的指标. 数值越高表示性能越好**&#13;
@@ -155,7 +155,7 @@ ASpT方案基于以下观察:&#13;
 因此, ASpT选择CSR表示的按行访问(Row-wise Access)和二维分块(2D Tiling)方法的组合, 以适应不同的稀疏性.&#13;
 根据稀疏矩阵不同区域的稠密程度动态选择策略. 下图展示了使用自适应稀疏分块(ASpT)方法背后的高级思想.&#13;
 &#13;
-![在多个内核上使用ASpT进行稀疏矩阵乘法](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)&#13;
+![在多个内核上使用ASpT进行稀疏矩阵乘法](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/在多个内核上使用ASpT进行稀疏矩阵乘法.png)&#13;
 在多个内核上使用ASpT进行稀疏矩阵乘法&#13;
 &#13;
 **ASpT方法首先将稀疏矩阵$S$划分为多个行面板(row-panels), 行面板的大小(行数)由缓存(L2 cache)或内存容量限制来决定.&#13;
@@ -171,7 +171,7 @@ SpMM方案使用带有额外元数据的无序CSR表示, 如下图所示, (a)和
 在(a)中, **整个矩阵被划分为两个行面板, 每个行面板包含一组连续的行.** 如果行面板中的列段包含至少两个非零元素, 则被归类为高密度列段.&#13;
 稀疏矩阵的每个行面板按照图(b)所示的方式重新排序. **行面板中的所有高密度列段都放置在低密度列段之前.**&#13;
 &#13;
-![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)&#13;
+![将稀疏矩阵拆分为高度聚类的行段和剩余部分](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/将稀疏矩阵拆分为高度聚类的行段和剩余部分.png)&#13;
 将稀疏矩阵拆分为高度聚类的行段和剩余部分&#13;
 &#13;
 因此, **每个重新排序的行面板可以看成两个部分: 第一个部分包含一组高密度列段, 第二个部分由低密度列段组成**. 并且第一个部分进一步细分为&#13;
@@ -207,7 +207,7 @@ Pascal P100 GPU支持多达2K线程访问24KB的L1缓存, 以及112K线程访问
 - **在线程块内部, 不同的线程束(warp)处理行块中的不同行,&#13;
   线程束内的线程沿着K方向分布, 以避免线程发散, 并实现良好的负载均衡**&#13;
 &#13;
-![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)&#13;
+![针对密集块和稀疏块的SpMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SpMM-ASpT的GPU实现.png)&#13;
 针对密集块和稀疏块的SpMM-ASpT的GPU实现&#13;
 &#13;
 对于稠密2D tiles会将$D$的相应元素加载到共享内存中, 以便多次重用提高访问效率. 对于稀疏2D tiles, 因为非零元素较少,&#13;
@@ -229,7 +229,7 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 在SDDMM中, 两个稠密矩阵相乘, 然后将结果矩阵使用元素级乘法(哈达玛积)与一个稀疏矩阵进行缩放.&#13;
 下图展示了针对密集块和稀疏块的SDDMM-ASpT的GPU实现.&#13;
 &#13;
-![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/imh/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)&#13;
+![针对密集块和稀疏块的SDDMM-ASpT的GPU实现](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/针对密集块和稀疏块的SDDMM-ASpT的GPU实现.png)&#13;
 针对密集块和稀疏块的SDDMM-ASpT的GPU实现&#13;
 &#13;
 在GPU实现上, 算法动态选择稠密块和稀疏块的处理方式. 对于稠密块, 密集矩阵$D1$加载到共享内存中. 对于稀疏块, $D1$&#13;
@@ -246,13 +246,13 @@ SpMM-ASpT GPU 算法通过动态选择稠密和稀疏 tile 的处理方式, 结�
 - 在SpMM测试中, 与NVIDIA cuSPARSE库的性能进行比较&#13;
 - 在SDDMM测试中, 与BIDMach库的性能进行比较&#13;
 &#13;
-![P100的SpMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)&#13;
+![P100的SpMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SpMM结果.png)&#13;
 P100的SpMM结果&#13;
 &#13;
 结果显示, **ASpT显著优于cuSPARSE, 在高宽度稠密矩阵(K=128)情况下表现尤为突出. 对于特定数据集, ASpT的性能可达到900 GFLOPs,&#13;
 而cuSPARSE的最高性能约为685 GFLOPs**. ASpT在稠密宽度较大的场景中, 性能提升显著, 显示了对大规模矩阵运算的适应性.&#13;
 &#13;
-![P100的SDDMM结果](/imh/%5B论文笔记%5D用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)&#13;
+![P100的SDDMM结果](/img/[论文笔记]用于稀疏矩阵的自适应稀疏分块方法/P100的SDDMM结果.png)&#13;
 P100的SDDMM结果&#13;
 &#13;
 结果显示, **ASpT显著优于BIDMach，在所有测试矩阵上表现优异. 随着稠密矩阵宽度(K)增加, ASpT性能进一步提升.** 说明其GPU优化策略的适用性.&#13;
