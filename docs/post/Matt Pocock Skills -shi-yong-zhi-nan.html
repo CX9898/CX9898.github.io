@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://cx9898.github.io/img/CX.jpg"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# Matt Pocock Skills 使用指南
+
+本文档整理 `https://github.com/mattpocock/skills` 项目下的 Skill，分类按“用途”组织，说明它们分别解决什么问题，以及什么时候应该使用。">
+<meta property="og:title" content="Matt Pocock Skills 使用指南">
+<meta property="og:description" content="# Matt Pocock Skills 使用指南
+
+本文档整理 `https://github.com/mattpocock/skills` 项目下的 Skill，分类按“用途”组织，说明它们分别解决什么问题，以及什么时候应该使用。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://CX9898.github.io/post/Matt%20Pocock%20Skills%20-shi-yong-zhi-nan.html">
+<meta property="og:image" content="https://cx9898.github.io/img/CX.jpg">
+<title>Matt Pocock Skills 使用指南</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Matt Pocock Skills 使用指南</h1>
+<div class="title-right">
+    <a href="https://CX9898.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/CX9898/CX9898.github.io/issues/10" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>Matt Pocock Skills 使用指南</h1>
+<p>本文档整理 <code class="notranslate">https://github.com/mattpocock/skills</code> 项目下的 Skill，分类按“用途”组织，说明它们分别解决什么问题，以及什么时候应该使用。</p>
+<p>更新时间：2026-06-08；当前统计：29 个 Skill。</p>
+<h2>如何选择 Skill</h2>
+<ul>
+<li>有 bug、异常行为或性能回归：优先用 <a href="#diagnose"><code class="notranslate">diagnose</code></a>。</li>
+<li>用户要求测试先行：用 <a href="#tdd"><code class="notranslate">tdd</code></a>。</li>
+<li>设计、状态机、数据模型或 UI 方案还没定：用 <a href="#prototype"><code class="notranslate">prototype</code></a>。</li>
+<li>想追问并打磨计划：用 <a href="#grill-me"><code class="notranslate">grill-me</code></a>。</li>
+<li>想把计划对齐项目术语和 ADR：用 <a href="#grill-with-docs"><code class="notranslate">grill-with-docs</code></a>。</li>
+<li>想理解一片陌生代码：用 <a href="#zoom-out"><code class="notranslate">zoom-out</code></a>。</li>
+<li>想改善架构或寻找重构机会：用 <a href="#improve-codebase-architecture"><code class="notranslate">improve-codebase-architecture</code></a>。</li>
+<li>想把需求沉淀成 PRD：用 <a href="#to-prd"><code class="notranslate">to-prd</code></a>。</li>
+<li>想把 PRD 或计划拆成任务：用 <a href="#to-issues"><code class="notranslate">to-issues</code></a>。</li>
+<li>想处理 issue 队列：用 <a href="#triage"><code class="notranslate">triage</code></a>。</li>
+<li>想审查分支、PR 或 WIP diff：用 <a href="#review"><code class="notranslate">review</code></a>。</li>
+<li>想写文章：先用 <a href="#writing-fragments"><code class="notranslate">writing-fragments</code></a> 收集素材，再用 <a href="#writing-shape"><code class="notranslate">writing-shape</code></a> 或 <a href="#writing-beats"><code class="notranslate">writing-beats</code></a> 成文；已有草稿则用 <a href="#edit-article"><code class="notranslate">edit-article</code></a>。</li>
+<li>想创建新的 Skill：用 <a href="#write-a-skill"><code class="notranslate">write-a-skill</code></a>。</li>
+</ul>
+<h2>分类速查</h2>
+<h3>工程类</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>作用</th>
+<th>适合场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#diagnose"><code class="notranslate">diagnose</code></a></td>
+<td>系统化排查 bug 和性能回归</td>
+<td>报错、行为异常、性能变慢、非确定性问题</td>
+</tr>
+<tr>
+<td><a href="#tdd"><code class="notranslate">tdd</code></a></td>
+<td>按红-绿-重构循环开发</td>
+<td>用户要求测试先行，或变更风险较高</td>
+</tr>
+<tr>
+<td><a href="#prototype"><code class="notranslate">prototype</code></a></td>
+<td>构建可丢弃原型验证设计</td>
+<td>状态机、数据模型、业务规则或 UI 方案未定</td>
+</tr>
+<tr>
+<td><a href="#improve-codebase-architecture"><code class="notranslate">improve-codebase-architecture</code></a></td>
+<td>发现架构深化和重构机会</td>
+<td>代码难测、耦合重、模块边界混乱</td>
+</tr>
+<tr>
+<td><a href="#grill-with-docs"><code class="notranslate">grill-with-docs</code></a></td>
+<td>结合领域文档追问设计并沉淀术语/决策</td>
+<td>计划需要对齐 <code class="notranslate">CONTEXT.md</code> 或 ADR</td>
+</tr>
+<tr>
+<td><a href="#zoom-out"><code class="notranslate">zoom-out</code></a></td>
+<td>从更高层解释代码结构</td>
+<td>不熟悉某块代码，需要模块地图和调用关系</td>
+</tr>
+<tr>
+<td><a href="#to-prd"><code class="notranslate">to-prd</code></a></td>
+<td>把当前上下文整理成 PRD</td>
+<td>需求已清楚，需要沉淀产品需求文档</td>
+</tr>
+<tr>
+<td><a href="#to-issues"><code class="notranslate">to-issues</code></a></td>
+<td>把计划或 PRD 拆成垂直切片 issue</td>
+<td>大任务要拆给人或 agent 并行实现</td>
+</tr>
+<tr>
+<td><a href="#triage"><code class="notranslate">triage</code></a></td>
+<td>按状态机处理 issue</td>
+<td>分流 bug/需求，标记 ready-for-agent 等状态</td>
+</tr>
+<tr>
+<td><a href="#setup-matt-pocock-skills"><code class="notranslate">setup-matt-pocock-skills</code></a></td>
+<td>配置工程 Skill 所需项目上下文</td>
+<td>首次在 repo 中使用工程类 Skill</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3>生产力类</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>作用</th>
+<th>适合场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#caveman"><code class="notranslate">caveman</code></a></td>
+<td>极简压缩沟通</td>
+<td>用户要求简短、少 token、caveman mode</td>
+</tr>
+<tr>
+<td><a href="#grill-me"><code class="notranslate">grill-me</code></a></td>
+<td>追问并打磨计划或设计</td>
+<td>想 stress-test 方案，但不需要更新项目文档</td>
+</tr>
+<tr>
+<td><a href="#handoff"><code class="notranslate">handoff</code></a></td>
+<td>生成会话交接文档</td>
+<td>换 agent、换会话、暂停后继续</td>
+</tr>
+<tr>
+<td><a href="#write-a-skill"><code class="notranslate">write-a-skill</code></a></td>
+<td>创建新的 agent Skill</td>
+<td>想把重复工作流沉淀成 <code class="notranslate">SKILL.md</code></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3>写作与知识管理类</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>状态</th>
+<th>作用</th>
+<th>适合场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#edit-article"><code class="notranslate">edit-article</code></a></td>
+<td>稳定</td>
+<td>编辑和改进文章草稿</td>
+<td>已有文章，需要重排结构和润色</td>
+</tr>
+<tr>
+<td><a href="#writing-fragments"><code class="notranslate">writing-fragments</code></a></td>
+<td>进行中</td>
+<td>追问并收集写作碎片</td>
+<td>想先积累素材，不急着定结构</td>
+</tr>
+<tr>
+<td><a href="#writing-shape"><code class="notranslate">writing-shape</code></a></td>
+<td>进行中</td>
+<td>把原始材料塑造成完整文章</td>
+<td>有 notes/fragments，想形成论证型文章</td>
+</tr>
+<tr>
+<td><a href="#writing-beats"><code class="notranslate">writing-beats</code></a></td>
+<td>进行中</td>
+<td>按 beat 逐段组装叙事文章</td>
+<td>想写成 journey，而不是传统大纲</td>
+</tr>
+<tr>
+<td><a href="#obsidian-vault"><code class="notranslate">obsidian-vault</code></a></td>
+<td>稳定</td>
+<td>管理 Obsidian 笔记和 wikilinks</td>
+<td>查找、创建、整理个人知识库笔记</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3>杂项工具类</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>作用</th>
+<th>适合场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#setup-pre-commit"><code class="notranslate">setup-pre-commit</code></a></td>
+<td>配置 Husky、lint-staged、Prettier、typecheck/test</td>
+<td>JS/TS 项目需要提交前质量门禁</td>
+</tr>
+<tr>
+<td><a href="#scaffold-exercises"><code class="notranslate">scaffold-exercises</code></a></td>
+<td>创建课程练习目录结构</td>
+<td>搭建 section、exercise、problem、solution、explainer</td>
+</tr>
+<tr>
+<td><a href="#migrate-to-shoehorn"><code class="notranslate">migrate-to-shoehorn</code></a></td>
+<td>将测试中的 <code class="notranslate">as</code> 断言迁移到 <code class="notranslate">@total-typescript/shoehorn</code></td>
+<td>测试数据需要 partial object 或故意错误类型</td>
+</tr>
+<tr>
+<td><a href="#git-guardrails-claude-code"><code class="notranslate">git-guardrails-claude-code</code></a></td>
+<td>阻止 Claude Code 执行危险 git 命令</td>
+<td>防止误 push、reset、clean、删除分支</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3>教学与审查类</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>状态</th>
+<th>作用</th>
+<th>适合场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#teach"><code class="notranslate">teach</code></a></td>
+<td>进行中</td>
+<td>使用 lesson、reference、learning records 做长期教学</td>
+<td>用户想持续学习一个主题</td>
+</tr>
+<tr>
+<td><a href="#review"><code class="notranslate">review</code></a></td>
+<td>进行中</td>
+<td>双轴 review：Standards 与 Spec</td>
+<td>审查分支、PR 或 WIP diff</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h3>废弃 Skill</h3>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Skill</th>
+<th>替代方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#ubiquitous-language"><code class="notranslate">ubiquitous-language</code></a></td>
+<td><a href="#grill-with-docs"><code class="notranslate">grill-with-docs</code></a></td>
+<td>旧版 DDD 术语提取流程</td>
+</tr>
+<tr>
+<td><a href="#request-refactor-plan"><code class="notranslate">request-refactor-plan</code></a></td>
+<td><a href="#improve-codebase-architecture"><code class="notranslate">improve-codebase-architecture</code></a> + <a href="#to-issues"><code class="notranslate">to-issues</code></a></td>
+<td>旧版重构计划访谈流程</td>
+</tr>
+<tr>
+<td><a href="#qa"><code class="notranslate">qa</code></a></td>
+<td><a href="#triage"><code class="notranslate">triage</code></a> 或 <a href="#diagnose"><code class="notranslate">diagnose</code></a></td>
+<td>旧版 QA 到 issue 流程</td>
+</tr>
+<tr>
+<td><a href="#design-an-interface"><code class="notranslate">design-an-interface</code></a></td>
+<td><a href="#prototype"><code class="notranslate">prototype</code></a> 或 <a href="#grill-with-docs"><code class="notranslate">grill-with-docs</code></a></td>
+<td>旧版并行接口设计流程</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<h2>工程类详解</h2>
+<h3>diagnose</h3>
+<p>用于系统化排查 bug、异常行为和性能回归。核心是先建立可重复运行的反馈环，再复现、提出假设、加仪器验证、修复并补回归测试。</p>
+<p>适合在用户说“debug this”“diagnose this”，或报告功能报错、输出错误、性能变慢、行为不稳定时使用。</p>
+<p>不要凭直觉直接改代码。这个 Skill 要求先得到一个可信的 pass/fail 信号，再围绕信号定位根因。</p>
+<h3>tdd</h3>
+<p>用于按红-绿-重构循环开发。测试应验证公开接口的行为，而不是内部实现细节。</p>
+<p>适合在用户明确要求 TDD、test-first、red-green-refactor，或变更风险较高、需要先锁定外部行为时使用。</p>
+<p>它强调用一个垂直切片推进：先写失败测试，再写最小实现，最后重构。</p>
+<h3>prototype</h3>
+<p>用于构建可丢弃原型，帮助验证状态机、业务规则、数据模型或 UI 方案。</p>
+<p>如果问题偏业务逻辑，可以做可运行的终端原型。如果问题偏 UI，可以做多个可切换的界面变体。</p>
+<p>适合在设计还没定、用户说“prototype this”“let me play with it”或“try a few designs”时使用。</p>
+<h3>improve-codebase-architecture</h3>
+<p>用于从领域语言和 ADR 出发，寻找代码库中的架构深化机会。</p>
+<p>它重点关注模块是否太浅、耦合是否泄漏、测试边界是否困难，以及复杂度是否可以收进更深的模块接口。</p>
+<p>适合在用户想改善架构、找重构机会，或觉得代码难测、难理解、边界混乱时使用。</p>
+<h3>grill-with-docs</h3>
+<p>用于结合现有领域文档和 ADR，逐步追问用户的计划或设计。</p>
+<p>当术语、边界或决策变清楚时，它会同步更新 <code class="notranslate">CONTEXT.md</code> 或 ADR，让讨论结果沉淀进项目文档。</p>
+<p>适合在计划需要对齐项目已有语言、存在模糊术语，或需要确认设计是否违反已有 ADR 时使用。</p>
+<h3>zoom-out</h3>
+<p>用于让 agent 跳到更高层抽象，解释某片代码在整体系统中的位置、相关模块、调用方和职责边界。</p>
+<p>适合在用户不熟悉某个代码区域，或需要先理解大图而不是直接钻进某个函数时使用。</p>
+<p>它通常不负责改代码，而是帮助建立模块地图。</p>
+<h3>to-prd</h3>
+<p>用于把当前对话和代码库理解整理成 PRD，并发布到项目 issue tracker。</p>
+<p>它不重新访谈用户，而是综合已有上下文，输出 problem statement、solution、user stories、implementation decisions 和 testing decisions。</p>
+<p>适合在需求已经聊得比较清楚，需要沉淀成产品需求文档时使用。</p>
+<h3>to-issues</h3>
+<p>用于把计划、spec 或 PRD 拆成可独立领取的 issue。</p>
+<p>它强调端到端垂直切片，而不是按前端、后端、数据库这类层级水平拆分。</p>
+<p>适合在大功能需要多人或多个 agent 并行实现，或需要区分 HITL 与 AFK 切片时使用。</p>
+<h3>triage</h3>
+<p>用于按 issue triage 状态机处理问题。</p>
+<p>它会区分 <code class="notranslate">bug</code> / <code class="notranslate">enhancement</code>，以及 <code class="notranslate">needs-triage</code>、<code class="notranslate">needs-info</code>、<code class="notranslate">ready-for-agent</code>、<code class="notranslate">ready-for-human</code>、<code class="notranslate">wontfix</code> 等状态。</p>
+<p>适合查看哪些 issue 需要关注、分流具体 issue，或为 AFK agent 准备清晰的问题说明。</p>
+<h3>setup-matt-pocock-skills</h3>
+<p>用于为工程类 Skill 搭建项目级配置。</p>
+<p>它会确认 issue tracker、triage 标签映射、领域文档布局，并写入 <code class="notranslate">AGENTS.md</code> 或 <code class="notranslate">CLAUDE.md</code> 及 <code class="notranslate">docs/agents/</code>。</p>
+<p>适合在首次使用 <code class="notranslate">to-issues</code>、<code class="notranslate">to-prd</code>、<code class="notranslate">triage</code>、<code class="notranslate">diagnose</code>、<code class="notranslate">tdd</code>、<code class="notranslate">improve-codebase-architecture</code> 或 <code class="notranslate">zoom-out</code> 前运行。</p>
+<h2>生产力类详解</h2>
+<h3>caveman</h3>
+<p>用于进入极简压缩沟通模式。它会删掉寒暄、填充词和不必要解释，同时保留技术准确性。</p>
+<p>适合在用户说“caveman mode”“be brief”“less tokens”，或希望减少 token 消耗时使用。</p>
+<h3>grill-me</h3>
+<p>用于猛烈追问用户的计划或设计，逐个拆开决策分支，直到双方达成清晰共识。</p>
+<p>适合在用户想 stress-test 一个设计，或计划还没有完全想清楚时使用。</p>
+<p>如果需要同步更新领域文档，优先用 <code class="notranslate">grill-with-docs</code>。</p>
+<h3>handoff</h3>
+<p>用于把当前会话压缩成一份交接文档，方便另一个 agent 或下一次会话继续工作。</p>
+<p>适合在上下文很长、需要换会话，或工作要暂停但希望保留关键状态时使用。</p>
+<p>交接内容通常包括进展、决策、下一步和推荐使用的 Skill。</p>
+<h3>write-a-skill</h3>
+<p>用于创建新的 agent Skill，包括 <code class="notranslate">SKILL.md</code> 结构、触发条件、引用文件和可选脚本。</p>
+<p>适合在用户想创建、编写或改进一个 Skill，或希望把重复任务沉淀成可复用工作流时使用。</p>
+<h2>写作与知识管理类详解</h2>
+<h3>edit-article</h3>
+<p>用于编辑和改进已有文章草稿，包括重排结构、增强清晰度、压缩段落和改善行文。</p>
+<p>流程是先按 heading 划分文章，确认信息依赖顺序，再逐节改写。</p>
+<p>适合在用户已有文章，希望改善结构、表达、段落顺序或可读性时使用。</p>
+<h3>writing-fragments</h3>
+<p>用于通过追问挖掘写作碎片，并持续追加到一个 Markdown 文件中。</p>
+<p>碎片可以是观点、句子、例子、抱怨、半成品想法、对话或一组相关观察。</p>
+<p>适合在用户还不想定结构，只想先收集素材，或提到 fragments、ideate、raw material 时使用。</p>
+<h3>writing-shape</h3>
+<p>用于把一堆原始材料塑造成文章。</p>
+<p>它会先提出多个开头方向，再逐段增长文章，并和用户讨论段落、列表、引用、表格等形式。</p>
+<p>适合在用户已有 notes、fragments 或 rough draft，并想把它们变成论证型文章时使用。</p>
+<h3>writing-beats</h3>
+<p>用于把文章当作一段 journey 来写。</p>
+<p>用户先从候选起始 beat 中选择一个，然后一段一段决定下一步走向，直到文章自然结束。</p>
+<p>适合在用户有原始材料，但想写成叙事型文章，而不是传统大纲或论证结构时使用。</p>
+<h3>obsidian-vault</h3>
+<p>用于搜索、创建和管理 Obsidian vault 中的笔记。</p>
+<p>它使用 <code class="notranslate">[[wikilinks]]</code> 和 index notes 组织知识，也可以查找反向链接。</p>
+<p>适合在用户想查找、创建、整理个人知识库笔记，或维护 Obsidian 索引时使用。</p>
+<h2>杂项工具类详解</h2>
+<h3>setup-pre-commit</h3>
+<p>用于为当前 repo 设置 Husky pre-commit hook、lint-staged、Prettier，并可接入 typecheck 和 test。</p>
+<p>适合在 JS/TS 项目需要提交前自动格式化、类型检查、测试，或 repo 还没有统一提交前质量门禁时使用。</p>
+<h3>scaffold-exercises</h3>
+<p>用于创建课程练习目录结构，包括 section、exercise、problem、solution、explainer。</p>
+<p>适合在用户想 scaffold exercises，或项目中有 <code class="notranslate">exercises/</code> 结构和 <code class="notranslate">pnpm ai-hero-cli internal lint</code> 校验时使用。</p>
+<h3>migrate-to-shoehorn</h3>
+<p>用于把测试文件中的 TypeScript <code class="notranslate">as</code> 类型断言迁移到 <code class="notranslate">@total-typescript/shoehorn</code>。</p>
+<p>它使用 <code class="notranslate">fromPartial()</code>、<code class="notranslate">fromAny()</code> 等方法表达测试数据，只适用于测试代码，不用于生产代码。</p>
+<p>适合在测试里有大量 <code class="notranslate">as Type</code> 或 <code class="notranslate">as unknown as Type</code>，并需要构造 partial test data 时使用。</p>
+<h3>git-guardrails-claude-code</h3>
+<p>用于为 Claude Code 配置 hook，阻止危险 git 命令执行。</p>
+<p>典型拦截对象包括 <code class="notranslate">git push</code>、<code class="notranslate">git reset --hard</code>、<code class="notranslate">git clean -f</code>、<code class="notranslate">git branch -D</code>。</p>
+<p>适合在用户想防止 agent 误推送、误删除、误重置，或团队希望增加 git 安全护栏时使用。</p>
+<h2>教学与审查类详解</h2>
+<h3>teach</h3>
+<p>用于把当前目录当成长期教学工作区。</p>
+<p>它通过 <code class="notranslate">MISSION.md</code>、<code class="notranslate">GLOSSARY.md</code>、<code class="notranslate">RESOURCES.md</code> 和 learning records 追踪学习状态。</p>
+<p>适合在用户想持续学习一个主题，或学习需要跨多次会话推进时使用。</p>
+<h3>review</h3>
+<p>用于从指定固定点对当前 diff 做双轴 review：Standards 和 Spec。</p>
+<p>Standards 检查代码是否符合项目文档化标准。Spec 检查实现是否符合原始 issue、PRD 或 spec。</p>
+<p>适合在用户想 review 当前分支、PR、WIP，或说“review since main / since commit X”时使用。</p>
+<h2>废弃 Skill 详解</h2>
+<p>这些 Skill 位于 <code class="notranslate">deprecated</code> 目录。它们仍可读，但通常不建议优先使用，因为已有更新的 Skill 或组合流程可以覆盖。</p>
+<h3>ubiquitous-language</h3>
+<p>旧版用途是从当前对话提取 DDD 风格的通用语言术语表，并写入 <code class="notranslate">UBIQUITOUS_LANGUAGE.md</code>。</p>
+<p>现在更推荐使用 <code class="notranslate">grill-with-docs</code> 和 <code class="notranslate">CONTEXT.md</code> 流程来沉淀领域语言。</p>
+<h3>request-refactor-plan</h3>
+<p>旧版用途是通过访谈生成详细重构计划，并创建 GitHub issue。</p>
+<p>现在更推荐先用 <code class="notranslate">improve-codebase-architecture</code> 发现候选，再用 <code class="notranslate">to-prd</code> 或 <code class="notranslate">to-issues</code> 沉淀执行计划。</p>
+<h3>qa</h3>
+<p>旧版用途是把交互式 QA 反馈变成 GitHub issue。</p>
+<p>现在可根据情况使用 <code class="notranslate">triage</code>、<code class="notranslate">diagnose</code> 或 <code class="notranslate">to-issues</code> 替代。</p>
+<h3>design-an-interface</h3>
+<p>旧版用途是让多个 sub-agent 并行生成不同接口设计，再比较权衡。</p>
+<p>现在可根据问题使用 <code class="notranslate">prototype</code>、<code class="notranslate">grill-with-docs</code> 或 <code class="notranslate">improve-codebase-architecture</code> 承接。</p></div>
+<div style="font-size:small;margin-top:8px;float:right;">❤️ 转载文章请注明出处，谢谢！❤️</div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://CX9898.github.io">Chengxing Zou的博客</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if("07/02/2024"!=""){
+    var startSite=new Date("07/02/2024");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","CX9898/CX9898.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+
+
+</html>
