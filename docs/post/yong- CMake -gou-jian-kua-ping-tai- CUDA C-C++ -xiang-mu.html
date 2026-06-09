@@ -1130,8 +1130,8 @@ GPU架构和对应的参数列表</p>
 <hr>
 <h3>用变量存储文件夹路径</h3>
 <p><strong>添加创建的 include 文件夹路径储存到变量 <code class="notranslate">INCLUDE_DIR</code> , 添加 src 文件夹路径储存到变量 <code class="notranslate">SRC_DIR</code> .</strong></p>
-<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">set</span>(INCLUDE_DIR <span class="pl-s">"<span class="pl-smi">${CMAKE_SOURCE_DIR}</span>/include"</span>)
-<span class="pl-c1">set</span>(SRC_DIR <span class="pl-s">"<span class="pl-smi">${CMAKE_SOURCE_DIR}</span>/src"</span>)</pre></div>
+<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">set</span>(INCLUDE_DIR <span class="pl-s">"<span class="pl-smi">${<span class="pl-c1">CMAKE_SOURCE_DIR</span>}</span>/include"</span>)
+<span class="pl-c1">set</span>(SRC_DIR <span class="pl-s">"<span class="pl-smi">${<span class="pl-c1">CMAKE_SOURCE_DIR</span>}</span>/src"</span>)</pre></div>
 <blockquote>
 <p>变量 <code class="notranslate">CMAKE_SOURCE_DIR</code> 是 CMake 的内置变量, 储存最外层 CMakeLists.txt 文件所在的目录. 如果项目有多个子目录和子 CMakeLists.txt 文件, <code class="notranslate">CMAKE_SOURCE_DIR</code> 始终指向最外层的路径. <code class="notranslate">CMAKE_BINARY_DIR</code> 则对应子 CMakeLists.txt 文件的路径.</p>
 </blockquote>
@@ -1166,14 +1166,14 @@ GPU架构和对应的参数列表</p>
 <hr>
 <h3>添加构建目标</h3>
 <p><strong><code class="notranslate">add_executable()</code> 用以向项目中添加要从源代码构建的可执行目标.</strong></p>
-<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">add_executable</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-smi">${SRC_FILES}</span>)</pre></div>
+<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">add_executable</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-smi">${SRC_FILES}</span>)</pre></div>
 <p>一个配置文件中可以使用 <code class="notranslate">add_executable()</code> 添加多个目标.</p>
 <hr>
 <h3>添加头文件目录</h3>
 <p><strong>使用 <code class="notranslate">target_include_directories()</code> 可以为目标项目添加头文件目录, 使编译器可以找到目标所依赖的头文件.</strong></p>
 <p>使用前面定义好的 <code class="notranslate">INCLUDE_DIR</code> 变量来添加 include 头文件目录.</p>
-<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">target_include_directories</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${CUDA_INCLUDE_DIRS}</span>)
-<span class="pl-c1">target_include_directories</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${INCLUDE_DIR}</span>)</pre></div>
+<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">target_include_directories</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${CUDA_INCLUDE_DIRS}</span>)
+<span class="pl-c1">target_include_directories</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${INCLUDE_DIR}</span>)</pre></div>
 <ul>
 <li><code class="notranslate">PRIVATE</code> ：链接的库仅对目标自身可见</li>
 <li><code class="notranslate">PUBLIC</code> ：链接的库对目标自身和链接到该目标的所有其他目标都可见</li>
@@ -1187,25 +1187,25 @@ GPU架构和对应的参数列表</p>
 <p><strong>使用 <code class="notranslate">target_link_libraries()</code> 指定目标项目在链接时需要使用的库文件.</strong></p>
 <p>CUDA Runtime, cuBLAS 和 cuSPARSE 等库包含在 <a href="https://developer.nvidia.com/cuda-toolkit" rel="nofollow">CUDA Toolkit</a> 包中. 如果要使用它们, 只需要链接对应的库文件.</p>
 <p>例如使用储存了 CUDA Runtime 库文件的变量 CUDA_cudart_LIBRARY 来链接 CUDA Runtime 库文件.</p>
-<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${CUDA_cudart_LIBRARY}</span>)</pre></div>
+<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-smi">${CUDA_cudart_LIBRARY}</span>)</pre></div>
 <p>也可以直接使用 CMake 中 <a href="https://cmake.org/cmake/help/latest/module/FindCUDAToolkit.html#cuda-toolkit-rt-lib" rel="nofollow">FindCUDAToolkit</a> 模块定义好的目标来导入.</p>
 <div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c">#<span class="pl-c"> Linked cuda Runtime library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cudart</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cudart</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked cuBLAS library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cublas</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cublas</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked cuFFT library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cufft</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cufft</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked cuRAND library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::curand</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::curand</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked cuSOLVER library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cusolver</span>)
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cusolver</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked cuSPARSE library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cusparse</span>)</pre></div>
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">CUDA::cusparse</span>)</pre></div>
 <p>并且使用模块定义好的目标来导入库文件的同时也会自动添加相关的头文件, 使 C++ 源文件中也可以调用.</p>
 <blockquote>
 <p>如果要使用cuDNN库, 则需要去官网下载 cuDNN: <a href="https://developer.nvidia.com/cudnn-downloads" rel="nofollow">Downloads cuDNN</a>, 设置好环境, 然后查找 cuDNN 包并添加头文件目录和库文件.</p>
@@ -1253,7 +1253,7 @@ $ make</pre></div>
 <span class="pl-c1">find_package</span>(<span class="pl-s">OpenMP</span> <span class="pl-s">REQUIRED</span>)
 
 <span class="pl-c">#<span class="pl-c"> Linked OpenMP library</span></span>
-<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">OpenMP::OpenMP_CXX</span>)</pre></div>
+<span class="pl-c1">target_link_libraries</span>(<span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-c1">PRIVATE</span> <span class="pl-s">OpenMP::OpenMP_CXX</span>)</pre></div>
 <blockquote>
 <p>注意 : OpenMP 主要用于在 Host 端并行化 CPU 代码, 需要在 C++ 源文件中使用.</p>
 </blockquote>
@@ -1262,9 +1262,9 @@ $ make</pre></div>
 <h3>安装设置</h3>
 <p><strong>CMake 也可以指定安装规则. 当使用 cmake 产生 Makefile 后, 还可以通过执行make install命令来将编译生成的可执行文件, 库文件, 头文件等安装到指定位置.</strong></p>
 <p><strong>使用 <code class="notranslate">install()</code> 来设置安装规则.</strong> 通过设置变量 <code class="notranslate">CMAKE_INSTALL_PREFIX</code> 可以指定安装路径. 如果不指定路径则默认安装到 <code class="notranslate">/usr/local</code>.</p>
-<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">set</span>(<span class="pl-c1">CMAKE_INSTALL_PREFIX</span> <span class="pl-s">"<span class="pl-smi">${CMAKE_SOURCE_DIR}</span>"</span>)
+<div class="highlight highlight-source-cmake"><pre class="notranslate"><span class="pl-c1">set</span>(<span class="pl-c1">CMAKE_INSTALL_PREFIX</span> <span class="pl-s">"<span class="pl-smi">${<span class="pl-c1">CMAKE_SOURCE_DIR</span>}</span>"</span>)
 
-<span class="pl-c1">install</span>(<span class="pl-k">TARGETS</span> <span class="pl-smi">${PROJECT_NAME}</span> <span class="pl-k">DESTINATION</span> bin)</pre></div>
+<span class="pl-c1">install</span>(<span class="pl-k">TARGETS</span> <span class="pl-smi">${<span class="pl-c1">PROJECT_NAME</span>}</span> <span class="pl-k">DESTINATION</span> bin)</pre></div>
 <ul>
 <li><code class="notranslate">TARGETS</code> 用于指定需要安装的目标, 可以一次指定多个目标, 使用分号 <code class="notranslate">;</code> 分隔</li>
 <li>根据目标类型, 可以使用 <code class="notranslate">RUNTIME</code>, <code class="notranslate">LIBRARY</code> , <code class="notranslate">ARCHIVE</code> 等关键字来指定不同类型的文件的安装规则</li>

@@ -979,9 +979,9 @@ Tensor core 还支持特殊格式, 详细可在官网查看 :<br>
 <div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">template</span>&lt;<span class="pl-k">typename</span> Use, <span class="pl-k">int</span> m, <span class="pl-k">int</span> n, <span class="pl-k">int</span> k, <span class="pl-k">typename</span> T, <span class="pl-k">typename</span> Layout=<span class="pl-k">void</span>&gt; <span class="pl-k">class</span> <span class="pl-en">fragment</span>;
 
 <span class="pl-c"><span class="pl-c">//</span> examples</span>
-wmma::fragment&lt;wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; aFrag;
-wmma::fragment&lt;wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::col_major&gt; bFrag;
-wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; cFrag;</pre></div>
+wmma::fragment&lt;wmma::matrix_a, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, half, wmma::row_major&gt; aFrag;
+wmma::fragment&lt;wmma::matrix_b, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, half, wmma::col_major&gt; bFrag;
+wmma::fragment&lt;wmma::accumulator, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, <span class="pl-k">float</span>&gt; cFrag;</pre></div>
 <ul>
 <li><code class="notranslate">Use</code> : 用作第一个乘数的矩阵使用 <code class="notranslate">matrix_a</code> , 第二个乘数的矩阵使用 <code class="notranslate">matrix_b</code> . 当分别用作累加器C或目标累加器D时使用<br>
 <code class="notranslate">accumulator</code></li>
@@ -1092,13 +1092,13 @@ index = isBigCol * <span class="pl-c1">4</span> + isBigRow * <span class="pl-c1"
 <p><code class="notranslate">fill_fragment()</code> 是用于对矩阵片段 <code class="notranslate">fragment&lt;&gt;</code> 类进行操作, 可以用常量值 <code class="notranslate">v</code> 来填充整个矩阵片段.</p>
 <div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-k">void</span> <span class="pl-en">fill_fragment</span>(fragment&lt;...&gt; &amp;a, <span class="pl-k">const</span> T&amp; v);</pre></div>
 <p>一般用于对创建的 fragment 类进行初始化, 例如将记录中间结果的 acc 块先初始化为 0 :</p>
-<div class="highlight highlight-source-c++"><pre class="notranslate">wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; accFrag;
+<div class="highlight highlight-source-c++"><pre class="notranslate">wmma::fragment&lt;wmma::accumulator, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, <span class="pl-k">float</span>&gt; accFrag;
 <span class="pl-en">wmma::fill_fragment</span>(accFrag, <span class="pl-c1">0</span>.<span class="pl-c1">0f</span>);</pre></div>
 <hr>
 <h2>cuBLAS 库使用 Tensor core</h2>
 <p>使用 cuBLAS 库先要创建...........<br>
 目前只有 GEMM 操作支持使用 Tensor core, 要使用 Tensor core 需要设置数学模式为 : <code class="notranslate">CUBLAS_TENSOR_OP_MATH</code> .</p>
-<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-en">cublasSetMathMode</span>(cublasHandle, CUBLAS_TENSOR_OP_MATH);</pre></div>
+<div class="highlight highlight-source-c++"><pre class="notranslate"><span class="pl-en">cublasSetMathMode</span>(cublasHandle, <span class="pl-c1">CUBLAS_TENSOR_OP_MATH</span>);</pre></div>
 <p>A, B 和 C 矩阵都默认为列主序储存</p>
 <p>参数:</p>
 <ul>
@@ -1123,10 +1123,10 @@ index = isBigCol * <span class="pl-c1">4</span> + isBigRow * <span class="pl-c1"
 <span class="pl-c"><span class="pl-c">//</span> calculate the row id and column id of the resulting matrix block C to be computed by the current warp.</span>
 <span class="pl-k">int</span> cRow, cCol;
 
-wmma::fragment&lt;wmma::matrix_a, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; aFrag;
-wmma::fragment&lt;wmma::matrix_b, WMMA_M, WMMA_N, WMMA_K, half, wmma::row_major&gt; bFrag;
+wmma::fragment&lt;wmma::matrix_a, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, half, wmma::row_major&gt; aFrag;
+wmma::fragment&lt;wmma::matrix_b, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, half, wmma::row_major&gt; bFrag;
 
-wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">float</span>&gt; accFrag;
+wmma::fragment&lt;wmma::accumulator, <span class="pl-c1">WMMA_M</span>, <span class="pl-c1">WMMA_N</span>, <span class="pl-c1">WMMA_K</span>, <span class="pl-k">float</span>&gt; accFrag;
 <span class="pl-en">fill_fragment</span>(accFrag, <span class="pl-c1">0</span>.<span class="pl-c1">0f</span>);
 
 <span class="pl-c"><span class="pl-c">//</span> All matrices are stored in row-order</span>
@@ -1134,7 +1134,7 @@ wmma::fragment&lt;wmma::accumulator, WMMA_M, WMMA_N, WMMA_K, <span class="pl-k">
 <span class="pl-k">const</span> <span class="pl-k">int</span> ldb = N;
 <span class="pl-k">const</span> <span class="pl-k">int</span> ldc = N;
 
-<span class="pl-k">for</span> (<span class="pl-k">int</span> <span class="pl-c1">kIter</span> = <span class="pl-c1">0</span>; <span class="pl-c1">kIter</span> &lt; K; <span class="pl-c1">kIter</span> += WMMA_K) {
+<span class="pl-k">for</span> (<span class="pl-k">int</span> <span class="pl-c1">kIter</span> = <span class="pl-c1">0</span>; <span class="pl-c1">kIter</span> &lt; K; <span class="pl-c1">kIter</span> += <span class="pl-c1">WMMA_K</span>) {
 <span class="pl-k">const</span> <span class="pl-k">int</span> aRow = cRow;
 <span class="pl-k">const</span> <span class="pl-k">int</span> aCol = <span class="pl-c1">kIter</span>;
 
